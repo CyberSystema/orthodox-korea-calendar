@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════════
+   ORTHODOX KOREA CALENDAR — Byzantine Manuscript Design System
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Manuscript Palette ── */
+  --wine: #5c1414;
+  --wine-deep: #3a0a0a;
+  --wine-soft: #7a2020;
+  --crimson: #8c1b1b;
+  --crimson-light: #a52a2a;
+  --gold: #b8942e;
+  --gold-bright: #d4af52;
+  --gold-pale: #e8d48a;
+  --gold-dim: rgba(184, 148, 46, 0.35);
+  --gold-glow: rgba(184, 148, 46, 0.08);
+
+  /* ── Parchment Surfaces ── */
+  --parchment: #f0e8d8;
+  --parchment-light: #f7f2e8;
+  --parchment-warm: #e8ddc8;
+  --parchment-deep: #d8ccb4;
+  --surface: #faf6ee;
+  --surface-white: #fffdf8;
+
+  /* ── Inks ── */
+  --ink: #1a1008;
+  --ink-body: #2c2418;
+  --ink-soft: #564a3a;
+  --ink-muted: #8a7c68;
+  --ink-faint: #b0a48e;
+  --ink-ghost: #ccc2ae;
+
+  /* ── Structure ── */
+  --line: #d0c4aa;
+  --line-light: #e0d8c4;
+  --shadow-warm: 0 2px 8px rgba(26, 16, 8, 0.06);
+  --shadow-lifted: 0 8px 24px rgba(26, 16, 8, 0.1);
+  --shadow-deep: 0 16px 48px rgba(26, 16, 8, 0.15);
+
+  /* ── Radii ── */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 14px;
+
+  /* ── Fonts ── */
+  --serif: 'EB Garamond', 'Georgia', serif;
+  --sans: 'Outfit', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--parchment);
+  color: var(--ink-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--serif);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+::selection {
+  background: rgba(184, 148, 46, 0.25);
+  color: var(--wine-deep);
+}
+
+/* ── Manuscript Ornament ── */
+.ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--serif);
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+.ornament::before,
+.ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 7px; }
+::-webkit-scrollbar-track { background: var(--parchment-warm); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
