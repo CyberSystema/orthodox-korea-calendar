@@ -10,6 +10,8 @@
     cacheEN,
     cacheKR,
     eventsCache,
+    syncError,
+    syncInProgress,
     unavailableYears,
     selectedDay,
     currentMonth,
@@ -17,14 +19,17 @@
     language,
     languageLocked,
     isAdmin,
-    clearPasscode,
+    ensureAdminSession,
     ensureYear,
     loadEvents,
+    logoutAdminSession,
+    syncEventsForYear,
+    syncEventsNow,
   } from './lib/store';
   import { readParams } from './lib/params';
   import { getTranslations } from './lib/i18n';
   import { toLocalISO } from './lib/date';
-  import { updateLanguageTag } from './lib/onesignal';
+  import { updateLanguageTag } from './lib/fcm';
   import type { DayData, ParishEvent } from './lib/types';
 
   const params = readParams();
@@ -112,6 +117,16 @@
     await loadEvents(year);
   }
 
+  async function refreshFromSync(force = false) {
+    if (force) {
+      await syncEventsForYear($currentYear, { force: true });
+    } else {
+      await syncEventsNow();
+    }
+    await loadEvents($currentYear);
+    await loadEvents($currentYear + 1);
+  }
+
   function isValidISODate(value: string | null): value is string {
     return !!value && /^\d{4}-\d{2}-\d{2}$/.test(value);
   }
@@ -139,6 +154,9 @@
 
       currentYear.set(initialYear);
       currentMonth.set(initialMonth);
+
+      await ensureAdminSession();
+      await refreshFromSync();
 
       const ok = await ensureYear(initialYear);
       if (!ok) {
@@ -269,9 +287,8 @@
     addEventDate = '';
   }
 
-  function handleLogout() {
-    isAdmin.set(false);
-    clearPasscode();
+  async function handleLogout() {
+    await logoutAdminSession();
   }
 </script>
 
@@ -300,6 +317,24 @@
           </div>
         </div>
         <div class="hdr-actions">
+          {#if $syncInProgress}
+            <span class="admin-badge">{t.syncInProgress}</span>
+          {/if}
+          <button
+            class="hdr-icon-btn"
+            onclick={() => refreshFromSync(true)}
+            title={$language === 'en' ? 'Sync events' : '행사 동기화'}
+            disabled={$syncInProgress}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"><path d="M20 12a8 8 0 10-2.34 5.66M20 4v8h-8" /></svg
+            >
+          </button>
           {#if $isAdmin}
             <span class="admin-badge">{t.admin}</span>
             <button class="hdr-icon-btn" onclick={handleLogout} title={t.logout}>
@@ -377,6 +412,13 @@
             >
           </button>
         </nav>
+
+        {#if $syncError}
+          <div class="year-notice">
+            <span class="notice-cross">♱</span>
+            <p>{$syncError}</p>
+          </div>
+        {/if}
 
         <!-- Year not available -->
         {#if isYearMissing}

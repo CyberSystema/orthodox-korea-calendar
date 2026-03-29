@@ -35,6 +35,11 @@ export type NotificationTarget = 'all' | 'english' | 'korean';
 export interface ParishEvent {
   id: string;
   date: string; // YYYY-MM-DD
+  type?: string;
+  color?: string;
+  allDay?: boolean;
+  parentEventId?: string;
+  isOccurrence?: boolean;
   seriesStartDate?: string;
   titleEn?: string;
   titleKo?: string;
@@ -45,5 +50,7 @@ export interface ParishEvent {
   notify: boolean; // was notification sent?
   notificationTarget?: NotificationTarget; // which subscriber group(s) to notify
   recurrence: Recurrence;
+  recurrenceInterval?: number;
+  recurrenceUntil?: string;
   createdAt: string; // ISO datetime
 }

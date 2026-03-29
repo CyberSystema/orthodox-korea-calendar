@@ -19,5 +19,8 @@
     "svelte-check": "^4.3.1",
     "typescript": "~5.8.3",
     "vite": "^7.1.2"
+  },
+  "dependencies": {
+    "firebase": "^12.11.0"
   }
 }

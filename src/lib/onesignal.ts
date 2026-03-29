@@ -1,3 +1,5 @@
+import { registerSubscription, unregisterSubscription } from './events';
+
 declare global {
   interface Window {
     OneSignalDeferred?: Array<(OneSignal: any) => void | Promise<void>>;
@@ -5,6 +7,11 @@ declare global {
 }
 
 let initialized = false;
+let lastRegisteredToken = '';
+
+function toBackendLanguage(lang: 'en' | 'kr'): 'en' | 'ko' {
+  return lang === 'kr' ? 'ko' : 'en';
+}
 
 function getBrowserNotificationPermission(): NotificationPermission | 'unsupported' {
   if (typeof window === 'undefined' || typeof Notification === 'undefined') {
@@ -108,6 +115,29 @@ async function restorePushSubscription(OneSignal: any) {
   await tryOptIn();
 }
 
+async function syncBackendSubscription(OneSignal: any, lang: 'en' | 'kr'): Promise<void> {
+  try {
+    const subscription = OneSignal?.User?.PushSubscription;
+    const token = (subscription?.id || '').trim();
+    const optedIn = Boolean(subscription?.optedIn);
+
+    if (!token) return;
+
+    if (!optedIn) {
+      if (lastRegisteredToken && lastRegisteredToken === token) {
+        await unregisterSubscription(token);
+        lastRegisteredToken = '';
+      }
+      return;
+    }
+
+    await registerSubscription(token, toBackendLanguage(lang));
+    lastRegisteredToken = token;
+  } catch {
+    // Best-effort subscription sync.
+  }
+}
+
 export async function updateLanguageTag(lang: 'en' | 'kr'): Promise<void> {
   const tag = lang === 'kr' ? 'ko' : 'en';
   // If OneSignal is already initialized, update the tag directly.
@@ -116,6 +146,7 @@ export async function updateLanguageTag(lang: 'en' | 'kr'): Promise<void> {
     const OS = (window as any).OneSignal;
     if (OS?.User?.addTag) {
       await OS.User.addTag('language', tag);
+      await syncBackendSubscription(OS, lang);
       return;
     }
   } catch {
@@ -126,6 +157,7 @@ export async function updateLanguageTag(lang: 'en' | 'kr'): Promise<void> {
   window.OneSignalDeferred.push(async (OneSignal) => {
     try {
       await OneSignal.User.addTag('language', tag);
+      await syncBackendSubscription(OneSignal, lang);
     } catch {
       // Best-effort: ignore errors.
     }
@@ -165,6 +197,17 @@ export async function initOneSignal(lang: 'en' | 'kr'): Promise<void> {
       // After cache/site-data changes, permission may still be granted while the local
       // subscription record is gone. Restore it before deciding whether to prompt.
       await restorePushSubscription(OneSignal);
+      await syncBackendSubscription(OneSignal, lang);
+
+      try {
+        if (typeof OneSignal?.User?.PushSubscription?.addEventListener === 'function') {
+          OneSignal.User.PushSubscription.addEventListener('change', async () => {
+            await syncBackendSubscription(OneSignal, lang);
+          });
+        }
+      } catch {
+        // Optional listener support differs by browser/SDK context.
+      }
 
       await promptForPushOnFirstInteraction(OneSignal);
     });

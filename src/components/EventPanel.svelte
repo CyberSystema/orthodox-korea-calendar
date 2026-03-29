@@ -33,6 +33,29 @@
     }
   });
 
+  let eventTypeLabel = $derived.by(() => {
+    switch (event.type) {
+      case 'feast':
+        return t.eventTypeFeast;
+      case 'fast':
+        return t.eventTypeFast;
+      case 'commemoration':
+        return t.eventTypeCommemoration;
+      default:
+        return t.eventTypeOther;
+    }
+  });
+
+  let recurrenceDetail = $derived.by(() => {
+    if (event.recurrence === 'none') return recurrenceLabel;
+    const interval =
+      event.recurrenceInterval && event.recurrenceInterval > 1
+        ? ` x${event.recurrenceInterval}`
+        : '';
+    const until = event.recurrenceUntil ? ` · ${event.recurrenceUntil}` : '';
+    return `${recurrenceLabel}${interval}${until}`;
+  });
+
   let localizedTitle = $derived(eventTitleForLang(event, lang));
   let localizedDescription = $derived(eventDescriptionForLang(event, lang));
 
@@ -53,7 +76,14 @@
   function recurrenceRule(): string {
     if (event.recurrence === 'none') return '';
     const freq = event.recurrence.toUpperCase();
-    return `RRULE:FREQ=${freq}`;
+    const parts = [`FREQ=${freq}`];
+    if (event.recurrenceInterval && event.recurrenceInterval > 1) {
+      parts.push(`INTERVAL=${event.recurrenceInterval}`);
+    }
+    if (event.recurrenceUntil) {
+      parts.push(`UNTIL=${event.recurrenceUntil.replaceAll('-', '')}T235959Z`);
+    }
+    return `RRULE:${parts.join(';')}`;
   }
 
   let googleCalendarUrl = $derived.by(() => {
@@ -138,8 +168,24 @@
     </div>
     <div class="event-meta-card">
       <span class="event-meta-label">{t.recurrence}</span>
-      <span class="event-meta-value">{recurrenceLabel}</span>
+      <span class="event-meta-value">{recurrenceDetail}</span>
     </div>
+    <div class="event-meta-card">
+      <span class="event-meta-label">{t.eventType}</span>
+      <span class="event-meta-value">{eventTypeLabel}</span>
+    </div>
+    <div class="event-meta-card">
+      <span class="event-meta-label">{t.allDay}</span>
+      <span class="event-meta-value"
+        >{event.allDay ? (lang === 'en' ? 'Yes' : '예') : lang === 'en' ? 'No' : '아니오'}</span
+      >
+    </div>
+    {#if event.isOccurrence}
+      <div class="event-meta-card">
+        <span class="event-meta-label">{t.occurrence}</span>
+        <span class="event-meta-value">{event.parentEventId || event.id}</span>
+      </div>
+    {/if}
   </div>
 
   <section class="event-body">

@@ -1,8 +1,14 @@
 <script lang="ts">
   import type { Translations } from '../lib/i18n';
   import type { ParishEvent, Recurrence, NotificationTarget } from '../lib/types';
-  import { isAdmin, getPasscode, setPasscode, clearPasscode, refreshEvents } from '../lib/store';
-  import { verifyPasscode, createEvent, updateEvent } from '../lib/events';
+  import { isAdmin, setPasscode, clearPasscode, refreshEvents } from '../lib/store';
+  import {
+    BackendApiError,
+    createEvent,
+    loginAdmin,
+    notifySubscribers,
+    updateEvent,
+  } from '../lib/events';
 
   let {
     t,
@@ -24,6 +30,8 @@
   let passcodeInput = $state('');
   let authError = $state(false);
   let authLoading = $state(false);
+  let authErrorText = $state('');
+  let authLockedUntil = $state(0);
 
   // ── Form state (captured at mount — modal remounts each time) ──
   // svelte-ignore state_referenced_locally
@@ -36,10 +44,18 @@
   let formDescEn = $state(editingEvent?.descriptionEn ?? editingEvent?.description ?? '');
   // svelte-ignore state_referenced_locally
   let formDescKo = $state(editingEvent?.descriptionKo ?? '');
+  // svelte-ignore state_referenced_locally
+  let formType = $state(editingEvent?.type ?? 'other');
+  // svelte-ignore state_referenced_locally
+  let formAllDay = $state(editingEvent?.allDay ?? true);
   let formNotify = $state(true);
   let formNotificationTarget = $state<NotificationTarget>('all');
   // svelte-ignore state_referenced_locally
   let formRecurrence = $state<Recurrence>(editingEvent?.recurrence ?? 'none');
+  // svelte-ignore state_referenced_locally
+  let formRecurrenceInterval = $state(editingEvent?.recurrenceInterval ?? 1);
+  // svelte-ignore state_referenced_locally
+  let formRecurrenceUntil = $state(editingEvent?.recurrenceUntil ?? '');
   let formLoading = $state(false);
   let formError = $state('');
   let hasAnyTitle = $derived(Boolean(formTitleEn.trim() || formTitleKo.trim()));
@@ -49,7 +65,15 @@
     { value: 'daily', label: t.recurrenceDaily },
     { value: 'weekly', label: t.recurrenceWeekly },
     { value: 'monthly', label: t.recurrenceMonthly },
-    { value: 'yearly', label: t.recurrenceYearly },
+  ]);
+
+  let typeOptions = $derived<
+    Array<{ value: 'feast' | 'fast' | 'commemoration' | 'other'; label: string }>
+  >([
+    { value: 'feast', label: t.eventTypeFeast },
+    { value: 'fast', label: t.eventTypeFast },
+    { value: 'commemoration', label: t.eventTypeCommemoration },
+    { value: 'other', label: t.eventTypeOther },
   ]);
 
   let notificationTargetOptions = $derived<Array<{ value: NotificationTarget; label: string }>>([
@@ -58,20 +82,60 @@
     { value: 'korean', label: t.notificationKorean },
   ]);
 
+  function rateLimitHint(retryAfter?: number): string {
+    if (retryAfter === undefined) return 'Too many attempts. Please try again shortly.';
+    if (retryAfter < 60) return `Too many attempts. Try again in ${retryAfter}s.`;
+    return `Too many attempts. Try again in ${Math.ceil(retryAfter / 60)}m.`;
+  }
+
+  function errorMessageFromApi(error: unknown, fallback: string): string {
+    if (error instanceof BackendApiError) {
+      if (error.code === 'RATE_LIMITED') return rateLimitHint(error.retryAfter);
+      if (error.code === 'UNAUTHORIZED') return t.wrongPasscode;
+      return error.message || fallback;
+    }
+    if (error instanceof Error) return error.message || fallback;
+    return fallback;
+  }
+
+  function recurrencePayload() {
+    if (formRecurrence === 'none' || formRecurrence === 'yearly') return null;
+    return {
+      frequency: formRecurrence,
+      interval: Math.max(1, Number(formRecurrenceInterval) || 1),
+      until: formRecurrenceUntil || undefined,
+    };
+  }
+
   async function handleAuth() {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (authLockedUntil > nowSeconds) {
+      authError = true;
+      authErrorText = rateLimitHint(authLockedUntil - nowSeconds);
+      return;
+    }
+
     authError = false;
+    authErrorText = '';
     authLoading = true;
-    const ok = await verifyPasscode(passcodeInput);
-    authLoading = false;
-    if (ok) {
-      setPasscode(passcodeInput);
+
+    try {
+      const session = await loginAdmin(passcodeInput);
+      setPasscode(session.token);
       isAdmin.set(true);
       passcodeInput = '';
       if (!editingEvent && !prefillDate) {
         onClose();
       }
-    } else {
+    } catch (error) {
       authError = true;
+      authErrorText = errorMessageFromApi(error, t.wrongPasscode);
+      if (error instanceof BackendApiError && error.code === 'RATE_LIMITED') {
+        const retryAfter = error.retryAfter || 30;
+        authLockedUntil = Math.floor(Date.now() / 1000) + retryAfter;
+      }
+    } finally {
+      authLoading = false;
     }
   }
 
@@ -82,61 +146,49 @@
     }
     formLoading = true;
     formError = '';
-    const passcode = getPasscode();
 
     try {
       if (editingEvent) {
-        await updateEvent(
-          {
-            id: editingEvent.id,
-            date: formDate,
-            titleEn: formTitleEn,
-            titleKo: formTitleKo,
-            descriptionEn: formDescEn,
-            descriptionKo: formDescKo,
-            recurrence: formRecurrence,
-            originalYear: parseInt(
-              (editingEvent.seriesStartDate ?? editingEvent.date).substring(0, 4),
-              10,
-            ),
-          },
-          passcode,
-        );
+        await updateEvent(editingEvent.id, {
+          date: formDate,
+          titleEn: formTitleEn,
+          titleKo: formTitleKo,
+          descriptionEn: formDescEn,
+          descriptionKo: formDescKo,
+          type: formType,
+          allDay: formAllDay,
+          recurrence: recurrencePayload(),
+        });
       } else {
-        const created = await createEvent(
-          {
-            date: formDate,
-            titleEn: formTitleEn,
-            titleKo: formTitleKo,
-            descriptionEn: formDescEn,
-            descriptionKo: formDescKo,
-            notify: formNotify,
-            notificationTarget: formNotify ? formNotificationTarget : undefined,
-            recurrence: formRecurrence,
-          },
-          passcode,
-        );
+        const created = await createEvent({
+          date: formDate,
+          titleEn: formTitleEn,
+          titleKo: formTitleKo,
+          descriptionEn: formDescEn,
+          descriptionKo: formDescKo,
+          type: formType,
+          allDay: formAllDay,
+          recurrence: recurrencePayload() || undefined,
+        });
 
-        const notification = created?.notification;
-        if (formNotify && notification && !notification.sent) {
-          const hint = notification.reason || `status ${notification.status || 'unknown'}`;
-          formError = `Event saved, but push notification failed (${hint}). Check OneSignal/API config and Cloudflare logs.`;
-          formLoading = false;
-          await refreshEvents();
-          return;
+        if (formNotify) {
+          await notifySubscribers({
+            eventId: created.id,
+            target: formNotificationTarget,
+          });
         }
       }
       await refreshEvents();
       onClose();
-    } catch (e: any) {
-      formError = e.message || 'Failed to save';
-      // If passcode became invalid
-      if (e.message?.includes('passcode')) {
+    } catch (error) {
+      formError = errorMessageFromApi(error, 'Failed to save');
+      if (error instanceof BackendApiError && error.code === 'UNAUTHORIZED') {
         isAdmin.set(false);
         clearPasscode();
       }
+    } finally {
+      formLoading = false;
     }
-    formLoading = false;
   }
 
   function handleAuthKeydown(e: KeyboardEvent) {
@@ -159,7 +211,7 @@
         autocomplete="off"
       />
       {#if authError}
-        <p class="auth-err">{t.wrongPasscode}</p>
+        <p class="auth-err">{authErrorText || t.wrongPasscode}</p>
       {/if}
       <div class="auth-actions">
         <button class="btn btn-ghost" onclick={onClose}>{t.cancel}</button>
@@ -217,6 +269,38 @@
           {/each}
         </select>
       </label>
+
+      <label class="field">
+        <span class="field-label">{t.eventType}</span>
+        <select class="field-input" bind:value={formType}>
+          {#each typeOptions as option}
+            <option value={option.value}>{option.label}</option>
+          {/each}
+        </select>
+      </label>
+
+      <label class="field-check">
+        <input type="checkbox" bind:checked={formAllDay} />
+        <span>{t.allDay}</span>
+      </label>
+
+      {#if formRecurrence !== 'none'}
+        <label class="field">
+          <span class="field-label">{t.recurrenceInterval}</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            class="field-input"
+            bind:value={formRecurrenceInterval}
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">{t.recurrenceUntil}</span>
+          <input type="date" class="field-input" bind:value={formRecurrenceUntil} />
+        </label>
+      {/if}
 
       {#if !editingEvent}
         <label class="field-check">

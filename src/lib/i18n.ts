@@ -45,6 +45,16 @@ export interface Translations {
   recurrenceWeekly: string;
   recurrenceMonthly: string;
   recurrenceYearly: string;
+  recurrenceInterval: string;
+  recurrenceUntil: string;
+  eventType: string;
+  eventTypeFeast: string;
+  eventTypeFast: string;
+  eventTypeCommemoration: string;
+  eventTypeOther: string;
+  allDay: string;
+  occurrence: string;
+  syncInProgress: string;
   addToCalendar: string;
   googleCalendar: string;
   appleCalendar: string;
@@ -106,6 +116,16 @@ const en: Translations = {
   recurrenceWeekly: 'Every week',
   recurrenceMonthly: 'Every month',
   recurrenceYearly: 'Every year',
+  recurrenceInterval: 'Interval',
+  recurrenceUntil: 'Until (optional)',
+  eventType: 'Event type',
+  eventTypeFeast: 'Feast',
+  eventTypeFast: 'Fast',
+  eventTypeCommemoration: 'Commemoration',
+  eventTypeOther: 'Other',
+  allDay: 'All day',
+  occurrence: 'Occurrence',
+  syncInProgress: 'Syncing events…',
   addToCalendar: 'Add to calendar',
   googleCalendar: 'Google Calendar',
   appleCalendar: 'Apple Calendar (.ics)',
@@ -167,6 +187,16 @@ const kr: Translations = {
   recurrenceWeekly: '매주',
   recurrenceMonthly: '매월',
   recurrenceYearly: '매년',
+  recurrenceInterval: '간격',
+  recurrenceUntil: '종료일 (선택)',
+  eventType: '행사 유형',
+  eventTypeFeast: '축일',
+  eventTypeFast: '금식',
+  eventTypeCommemoration: '기념일',
+  eventTypeOther: '기타',
+  allDay: '종일',
+  occurrence: '반복 발생',
+  syncInProgress: '행사 동기화 중…',
   addToCalendar: '캘린더에 추가',
   googleCalendar: '구글 캘린더',
   appleCalendar: '애플 캘린더 (.ics)',

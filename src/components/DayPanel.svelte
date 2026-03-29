@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { DayData, Language, ParishEvent } from '../lib/types';
   import type { Translations } from '../lib/i18n';
-  import { isAdmin, getPasscode, refreshEvents } from '../lib/store';
-  import { deleteEvent } from '../lib/events';
+  import { isAdmin, refreshEvents } from '../lib/store';
+  import { BackendApiError, deleteEvent } from '../lib/events';
   import { eventDescriptionForLang, eventTitleForLang } from '../lib/eventText';
 
   let {
@@ -32,14 +32,32 @@
   let dayEvents = $derived(events.filter((e: ParishEvent) => e.date === day.date));
 
   let deleting = $state('');
+  let deleteError = $state('');
+
+  function recurrenceSummary(evt: ParishEvent): string {
+    if (evt.recurrence === 'none') return '';
+    const interval =
+      evt.recurrenceInterval && evt.recurrenceInterval > 1 ? ` x${evt.recurrenceInterval}` : '';
+    const until = evt.recurrenceUntil ? ` · ${evt.recurrenceUntil}` : '';
+    return `${evt.recurrence}${interval}${until}`;
+  }
 
   async function handleDelete(evt: ParishEvent) {
     if (!confirm(t.deleteConfirm)) return;
     deleting = evt.id;
-    const year = parseInt(evt.date.substring(0, 4));
-    await deleteEvent(evt.id, year, getPasscode());
-    await refreshEvents();
-    deleting = '';
+    deleteError = '';
+    try {
+      await deleteEvent(evt.id);
+      await refreshEvents();
+    } catch (error) {
+      if (error instanceof BackendApiError) {
+        deleteError = error.message;
+      } else {
+        deleteError = 'Failed to delete event.';
+      }
+    } finally {
+      deleting = '';
+    }
   }
 </script>
 
@@ -124,6 +142,12 @@
               onclick={() => onViewEvent?.(evt)}
             >
               <span class="ename">{eventTitleForLang(evt, lang)}</span>
+              {#if evt.isOccurrence}
+                <span class="edesc">{t.occurrence}</span>
+              {/if}
+              {#if recurrenceSummary(evt)}
+                <span class="edesc">{recurrenceSummary(evt)}</span>
+              {/if}
               {#if eventDescriptionForLang(evt, lang)}
                 <span class="edesc">{eventDescriptionForLang(evt, lang)}</span>
               {/if}
@@ -149,6 +173,10 @@
       <button class="add-event-btn" onclick={() => onAddEvent?.()}>
         + {t.addEvent}
       </button>
+    {/if}
+
+    {#if deleteError}
+      <p class="empty-note">{deleteError}</p>
     {/if}
   </section>
 </div>
