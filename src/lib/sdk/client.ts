@@ -70,7 +70,11 @@ export class OrthodoxCalendarApiClient {
 
   constructor(baseUrl: string, options: OrthodoxCalendarApiClientOptions = {}) {
     this.baseUrl = baseUrl.replace(/\/+$/, '');
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    const providedFetch = options.fetchImpl;
+    this.fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) => {
+      const f = providedFetch ?? globalThis.fetch;
+      return f.call(globalThis, input, init);
+    }) as typeof fetch;
     this.tokenStore = options.tokenStore;
     this.defaultHeaders = options.defaultHeaders ?? {};
   }
