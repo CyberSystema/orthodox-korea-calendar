@@ -4,6 +4,7 @@ import {
   getMessaging,
   getToken,
   isSupported,
+  type MessagePayload,
   type Messaging,
   onMessage,
 } from 'firebase/messaging';
@@ -20,6 +21,7 @@ let cachedVapidKey = '';
 let tokenRefreshHooksInstalled = false;
 
 const PUSH_BANNER_DISMISSED_KEY = 'okc_push_banner_dismissed';
+const PUSH_PERMISSION_PROMPTED_KEY = 'okc_push_permission_prompted';
 export const showPushBanner = writable(false);
 export const canReopenPushBanner = writable(false);
 
@@ -40,6 +42,17 @@ function setBannerDismissed(value: boolean): void {
   if (typeof localStorage === 'undefined') return;
   if (value) localStorage.setItem(PUSH_BANNER_DISMISSED_KEY, '1');
   else localStorage.removeItem(PUSH_BANNER_DISMISSED_KEY);
+}
+
+function wasPermissionPrompted(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(PUSH_PERMISSION_PROMPTED_KEY) === '1';
+}
+
+function setPermissionPrompted(value: boolean): void {
+  if (typeof localStorage === 'undefined') return;
+  if (value) localStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, '1');
+  else localStorage.removeItem(PUSH_PERMISSION_PROMPTED_KEY);
 }
 
 function toBackendLanguage(lang: 'en' | 'kr'): 'en' | 'ko' {
@@ -202,6 +215,29 @@ function setupTokenRefreshHooks(): void {
   window.setInterval(refresh, 30 * 60 * 1000);
 }
 
+async function showForegroundNotification(payload: MessagePayload): Promise<void> {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+
+  const title = payload.notification?.title || payload.data?.title || 'Orthodox Korea';
+  const body = payload.notification?.body || payload.data?.body || '';
+
+  const options: NotificationOptions = {
+    body,
+    data: payload.data || {},
+  };
+
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.getRegistration('/').catch(() => null);
+    if (registration) {
+      await registration.showNotification(title, options).catch(() => {});
+      return;
+    }
+  }
+
+  new Notification(title, options);
+}
+
 export async function ensureFcmSubscriptionUpToDate(): Promise<void> {
   if (typeof Notification === 'undefined') return;
   if (Notification.permission !== 'granted') return;
@@ -211,6 +247,7 @@ export async function ensureFcmSubscriptionUpToDate(): Promise<void> {
 export async function requestPushPermission(): Promise<void> {
   try {
     if (typeof Notification === 'undefined') return;
+    setPermissionPrompted(true);
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       await refreshFcmToken(currentLang);
@@ -269,8 +306,9 @@ export async function initFcm(lang: 'en' | 'kr'): Promise<void> {
 
   setupTokenRefreshHooks();
 
-  onMessage(messaging, () => {
-    // Foreground message hook intentionally left light; browser notification is handled by FCM.
+  onMessage(messaging, (payload) => {
+    // Web FCM does not auto-display foreground pushes; explicitly surface them.
+    void showForegroundNotification(payload);
   });
 
   const permission = Notification.permission;
@@ -289,5 +327,11 @@ export async function initFcm(lang: 'en' | 'kr'): Promise<void> {
   }
 
   canReopenPushBanner.set(true);
+  if (!wasPermissionPrompted()) {
+    setBannerDismissed(false);
+    showPushBanner.set(true);
+    return;
+  }
+
   showPushBanner.set(!isBannerDismissed());
 }
