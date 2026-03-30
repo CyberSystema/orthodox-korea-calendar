@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Translations } from '../lib/i18n';
-  import type { ParishEvent, Recurrence, NotificationTarget } from '../lib/types';
+  import type { ParishEvent, Recurrence } from '../lib/types';
   import { isAdmin, setPasscode, clearPasscode, refreshEvents } from '../lib/store';
   import {
     BackendApiError,
@@ -9,6 +9,7 @@
     notifySubscribers,
     updateEvent,
   } from '../lib/events';
+  import { ensureFcmSubscriptionUpToDate } from '../lib/fcm';
 
   let {
     t,
@@ -46,8 +47,6 @@
   let formDescKo = $state(editingEvent?.descriptionKo ?? '');
   // svelte-ignore state_referenced_locally
   let formAllDay = $state(editingEvent?.allDay ?? true);
-  let formNotify = $state(true);
-  let formNotificationTarget = $state<NotificationTarget>('all');
   // svelte-ignore state_referenced_locally
   let formRecurrence = $state<Recurrence>(editingEvent?.recurrence ?? 'none');
   // svelte-ignore state_referenced_locally
@@ -56,6 +55,7 @@
   let formRecurrenceUntil = $state(editingEvent?.recurrenceUntil ?? '');
   let formLoading = $state(false);
   let formError = $state('');
+  let formNotice = $state('');
   let hasAnyTitle = $derived(Boolean(formTitleEn.trim() || formTitleKo.trim()));
 
   let recurrenceOptions = $derived<Array<{ value: Recurrence; label: string }>>([
@@ -63,12 +63,6 @@
     { value: 'daily', label: t.recurrenceDaily },
     { value: 'weekly', label: t.recurrenceWeekly },
     { value: 'monthly', label: t.recurrenceMonthly },
-  ]);
-
-  let notificationTargetOptions = $derived<Array<{ value: NotificationTarget; label: string }>>([
-    { value: 'all', label: t.notificationAll },
-    { value: 'english', label: t.notificationEnglish },
-    { value: 'korean', label: t.notificationKorean },
   ]);
 
   function rateLimitHint(retryAfter?: number): string {
@@ -112,6 +106,7 @@
       const session = await loginAdmin(passcodeInput);
       setPasscode(session.token);
       isAdmin.set(true);
+      void ensureFcmSubscriptionUpToDate();
       passcodeInput = '';
       if (!editingEvent && !prefillDate) {
         onClose();
@@ -135,6 +130,7 @@
     }
     formLoading = true;
     formError = '';
+    formNotice = '';
 
     try {
       if (editingEvent) {
@@ -158,36 +154,36 @@
           recurrence: recurrencePayload() || undefined,
         });
 
-        if (formNotify) {
-          const notifyResult = await notifySubscribers({
-            eventId: created.id,
-            target: formNotificationTarget,
-          });
+        const notifyResult = await notifySubscribers({
+          eventId: created.id,
+          target: 'all',
+        });
 
-          if (!notifyResult.fcmEnabled || notifyResult.fcmMode === 'disabled') {
-            formError =
-              notifyResult.message ||
-              'Event saved, but push delivery is disabled on the backend (FCM not configured).';
-            formLoading = false;
-            await refreshEvents();
-            return;
-          }
+        if (!notifyResult.fcmEnabled || notifyResult.fcmMode === 'disabled') {
+          formError =
+            notifyResult.message ||
+            'Event saved, but push delivery is disabled on the backend (FCM not configured).';
+          formLoading = false;
+          await refreshEvents();
+          return;
+        }
 
-          if (notifyResult.sent === 0) {
-            formError =
-              notifyResult.message ||
-              'Event saved, but no notifications were delivered. Check subscription status and FCM credentials.';
-            formLoading = false;
-            await refreshEvents();
-            return;
-          }
+        if (notifyResult.sent === 0) {
+          formError =
+            notifyResult.message ||
+            'Event saved, but no notifications were delivered. Check subscription status and FCM credentials.';
+          formLoading = false;
+          await refreshEvents();
+          return;
+        }
 
-          if (notifyResult.failed > 0) {
-            formError = `Event saved. Notification partial result: sent ${notifyResult.sent}, failed ${notifyResult.failed}.`;
-            formLoading = false;
-            await refreshEvents();
-            return;
-          }
+        if (notifyResult.failed > 0) {
+          formNotice =
+            notifyResult.message ||
+            `Event saved and delivered to ${notifyResult.sent} device(s). ${notifyResult.failed} delivery attempt(s) failed (likely stale or expired subscriptions).`;
+          formLoading = false;
+          await refreshEvents();
+          return;
         }
       }
       await refreshEvents();
@@ -306,25 +302,14 @@
       {/if}
 
       {#if !editingEvent}
-        <label class="field-check">
-          <input type="checkbox" bind:checked={formNotify} />
-          <span>{t.sendNotification}</span>
-        </label>
-
-        {#if formNotify}
-          <label class="field">
-            <span class="field-label">{t.notificationTarget}</span>
-            <select class="field-input" bind:value={formNotificationTarget}>
-              {#each notificationTargetOptions as option}
-                <option value={option.value}>{option.label}</option>
-              {/each}
-            </select>
-          </label>
-        {/if}
+        <p class="form-notice">New events notify all subscribers automatically.</p>
       {/if}
 
       {#if formError}
         <p class="form-err">{formError}</p>
+      {/if}
+      {#if formNotice}
+        <p class="form-notice">{formNotice}</p>
       {/if}
 
       <div class="form-actions">
@@ -469,6 +454,12 @@
 
   .form-err {
     color: var(--crimson);
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+  .form-notice {
+    color: #7a5a12;
     font-size: 0.82rem;
     font-weight: 600;
     margin: 0 0 0.5rem;

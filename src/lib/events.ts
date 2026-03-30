@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { BackendApiError } from './sdk';
 import type { AdminMeResponse, EventType, NotifyResponse } from './sdk';
 import type { ApiEvent, RecurrenceFrequency } from './sdk';
 import type { NotificationTarget, ParishEvent, Recurrence } from './types';
@@ -198,6 +199,15 @@ export async function notifySubscribers(params: {
   eventId: string;
   target: NotificationTarget;
 }): Promise<NotifyResponse> {
+  const hasToken = await apiClient.hasAdminToken();
+  if (!hasToken) {
+    throw new BackendApiError(
+      'Please login first before sending notifications.',
+      'UNAUTHORIZED',
+      401,
+    );
+  }
+
   const event = await getEventById(params.eventId);
   return apiClient.notify({
     target: mapNotificationTarget(params.target),

@@ -1,5 +1,12 @@
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
-import { deleteToken, getMessaging, getToken, isSupported, type Messaging, onMessage } from 'firebase/messaging';
+import {
+  deleteToken,
+  getMessaging,
+  getToken,
+  isSupported,
+  type Messaging,
+  onMessage,
+} from 'firebase/messaging';
 import { writable } from 'svelte/store';
 import { apiClient } from './apiClient';
 import { registerSubscription, unregisterSubscription } from './events';
@@ -10,6 +17,7 @@ let currentToken = '';
 let currentLang: 'en' | 'kr' = 'en';
 let cachedFirebaseConfig: FirebaseOptions | null = null;
 let cachedVapidKey = '';
+let tokenRefreshHooksInstalled = false;
 
 const PUSH_BANNER_DISMISSED_KEY = 'okc_push_banner_dismissed';
 export const showPushBanner = writable(false);
@@ -49,7 +57,10 @@ function getEnvFallbackConfig(): FirebaseOptions {
   };
 }
 
-async function ensureFirebaseClientConfig(): Promise<{ config: FirebaseOptions; vapidKey: string } | null> {
+async function ensureFirebaseClientConfig(): Promise<{
+  config: FirebaseOptions;
+  vapidKey: string;
+} | null> {
   if (cachedFirebaseConfig && cachedVapidKey) {
     return { config: cachedFirebaseConfig, vapidKey: cachedVapidKey };
   }
@@ -68,7 +79,13 @@ async function ensureFirebaseClientConfig(): Promise<{ config: FirebaseOptions; 
   } catch {
     const fallback = getEnvFallbackConfig();
     const vapid = (import.meta.env.VITE_FIREBASE_VAPID_KEY || '').trim();
-    if (!fallback.apiKey || !fallback.projectId || !fallback.messagingSenderId || !fallback.appId || !vapid) {
+    if (
+      !fallback.apiKey ||
+      !fallback.projectId ||
+      !fallback.messagingSenderId ||
+      !fallback.appId ||
+      !vapid
+    ) {
       return null;
     }
     cachedFirebaseConfig = fallback;
@@ -93,7 +110,9 @@ async function getMessagingInstance(): Promise<Messaging | null> {
   return cachedMessaging;
 }
 
-async function registerServiceWorker(config: FirebaseOptions): Promise<ServiceWorkerRegistration | null> {
+async function registerServiceWorker(
+  config: FirebaseOptions,
+): Promise<ServiceWorkerRegistration | null> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
 
   const params = new URLSearchParams({
@@ -106,9 +125,12 @@ async function registerServiceWorker(config: FirebaseOptions): Promise<ServiceWo
   });
 
   try {
-    return await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${params.toString()}`, {
-      scope: '/',
-    });
+    return await navigator.serviceWorker.register(
+      `/firebase-messaging-sw.js?${params.toString()}`,
+      {
+        scope: '/',
+      },
+    );
   } catch {
     return null;
   }
@@ -161,6 +183,29 @@ async function unsubscribeCurrentToken(): Promise<void> {
 
   await unregisterSubscription(currentToken).catch(() => {});
   currentToken = '';
+}
+
+function setupTokenRefreshHooks(): void {
+  if (typeof window === 'undefined' || tokenRefreshHooksInstalled) return;
+  tokenRefreshHooksInstalled = true;
+
+  const refresh = () => {
+    void ensureFcmSubscriptionUpToDate();
+  };
+
+  window.addEventListener('focus', refresh);
+  window.addEventListener('online', refresh);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refresh();
+  });
+
+  window.setInterval(refresh, 30 * 60 * 1000);
+}
+
+export async function ensureFcmSubscriptionUpToDate(): Promise<void> {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  await refreshFcmToken(currentLang).catch(() => {});
 }
 
 export async function requestPushPermission(): Promise<void> {
@@ -221,6 +266,8 @@ export async function initFcm(lang: 'en' | 'kr'): Promise<void> {
 
   const messaging = await getMessagingInstance();
   if (!messaging) return;
+
+  setupTokenRefreshHooks();
 
   onMessage(messaging, () => {
     // Foreground message hook intentionally left light; browser notification is handled by FCM.
