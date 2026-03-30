@@ -301,18 +301,18 @@ export async function initFcm(lang: 'en' | 'kr'): Promise<void> {
   if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
   if (!isTopLevelWindow()) return;
 
-  const messaging = await getMessagingInstance();
-  if (!messaging) return;
-
-  setupTokenRefreshHooks();
-
-  onMessage(messaging, (payload) => {
-    // Web FCM does not auto-display foreground pushes; explicitly surface them.
-    void showForegroundNotification(payload);
-  });
-
   const permission = Notification.permission;
   if (permission === 'granted') {
+    setupTokenRefreshHooks();
+
+    const messaging = await getMessagingInstance();
+    if (messaging) {
+      onMessage(messaging, (payload) => {
+        // Web FCM does not auto-display foreground pushes; explicitly surface them.
+        void showForegroundNotification(payload);
+      });
+    }
+
     await refreshFcmToken(lang);
     showPushBanner.set(false);
     canReopenPushBanner.set(false);
