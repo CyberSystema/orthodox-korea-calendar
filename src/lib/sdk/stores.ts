@@ -8,34 +8,56 @@ export interface AdminTokenStore {
   setToken(token: string | null): Promise<void>;
 }
 
-interface StorageLike {
+export class MemorySyncCursorStore implements SyncCursorStore {
+  private cursor = 0;
+
+  async getCursor(): Promise<number> {
+    return this.cursor;
+  }
+
+  async setCursor(cursor: number): Promise<void> {
+    this.cursor = Number.isFinite(cursor) && cursor >= 0 ? Math.floor(cursor) : 0;
+  }
+}
+
+export class MemoryAdminTokenStore implements AdminTokenStore {
+  private token: string | null = null;
+
+  async getToken(): Promise<string | null> {
+    return this.token;
+  }
+
+  async setToken(token: string | null): Promise<void> {
+    this.token = token;
+  }
+}
+
+interface LocalStorageLike {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
 }
 
-function getStorageOrThrow(kind: 'localStorage' | 'sessionStorage'): StorageLike {
-  const g = globalThis as unknown as {
-    localStorage?: StorageLike;
-    sessionStorage?: StorageLike;
-  };
-  const storage = kind === 'localStorage' ? g.localStorage : g.sessionStorage;
-  if (!storage) throw new Error(`${kind} is not available in this environment`);
-  return storage;
+function getLocalStorageOrThrow(): LocalStorageLike {
+  const g = globalThis as unknown as { localStorage?: LocalStorageLike };
+  if (!g.localStorage) {
+    throw new Error('localStorage is not available in this environment');
+  }
+  return g.localStorage;
 }
 
 export class WebSyncCursorStore implements SyncCursorStore {
   constructor(private readonly key = 'okn.sync.cursor') {}
 
   async getCursor(): Promise<number> {
-    const raw = getStorageOrThrow('localStorage').getItem(this.key);
+    const raw = getLocalStorageOrThrow().getItem(this.key);
     if (!raw) return 0;
     const n = Number.parseInt(raw, 10);
     return Number.isFinite(n) && n >= 0 ? n : 0;
   }
 
   async setCursor(cursor: number): Promise<void> {
-    getStorageOrThrow('localStorage').setItem(this.key, String(Math.max(0, Math.floor(cursor))));
+    getLocalStorageOrThrow().setItem(this.key, String(Math.max(0, Math.floor(cursor))));
   }
 }
 
@@ -43,15 +65,15 @@ export class WebAdminTokenStore implements AdminTokenStore {
   constructor(private readonly key = 'okn.admin.token') {}
 
   async getToken(): Promise<string | null> {
-    return getStorageOrThrow('localStorage').getItem(this.key);
+    return getLocalStorageOrThrow().getItem(this.key);
   }
 
   async setToken(token: string | null): Promise<void> {
     if (!token) {
-      getStorageOrThrow('localStorage').removeItem(this.key);
+      getLocalStorageOrThrow().removeItem(this.key);
       return;
     }
-    getStorageOrThrow('localStorage').setItem(this.key, token);
+    getLocalStorageOrThrow().setItem(this.key, token);
   }
 }
 
@@ -59,14 +81,61 @@ export class WebSessionAdminTokenStore implements AdminTokenStore {
   constructor(private readonly key = 'okn.admin.token') {}
 
   async getToken(): Promise<string | null> {
-    return getStorageOrThrow('sessionStorage').getItem(this.key);
+    const g = globalThis as unknown as { sessionStorage?: LocalStorageLike };
+    if (!g.sessionStorage) throw new Error('sessionStorage is not available in this environment');
+    return g.sessionStorage.getItem(this.key);
+  }
+
+  async setToken(token: string | null): Promise<void> {
+    const g = globalThis as unknown as { sessionStorage?: LocalStorageLike };
+    if (!g.sessionStorage) throw new Error('sessionStorage is not available in this environment');
+    if (!token) {
+      g.sessionStorage.removeItem(this.key);
+      return;
+    }
+    g.sessionStorage.setItem(this.key, token);
+  }
+}
+
+export interface AsyncStorageLike {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+}
+
+export class NativeSyncCursorStore implements SyncCursorStore {
+  constructor(
+    private readonly storage: AsyncStorageLike,
+    private readonly key = 'okn.sync.cursor',
+  ) {}
+
+  async getCursor(): Promise<number> {
+    const raw = await this.storage.getItem(this.key);
+    if (!raw) return 0;
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+
+  async setCursor(cursor: number): Promise<void> {
+    await this.storage.setItem(this.key, String(Math.max(0, Math.floor(cursor))));
+  }
+}
+
+export class NativeAdminTokenStore implements AdminTokenStore {
+  constructor(
+    private readonly storage: AsyncStorageLike,
+    private readonly key = 'okn.admin.token',
+  ) {}
+
+  async getToken(): Promise<string | null> {
+    return this.storage.getItem(this.key);
   }
 
   async setToken(token: string | null): Promise<void> {
     if (!token) {
-      getStorageOrThrow('sessionStorage').removeItem(this.key);
+      await this.storage.removeItem(this.key);
       return;
     }
-    getStorageOrThrow('sessionStorage').setItem(this.key, token);
+    await this.storage.setItem(this.key, token);
   }
 }

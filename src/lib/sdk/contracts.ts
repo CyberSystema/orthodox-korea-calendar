@@ -53,6 +53,12 @@ export interface LoginResponse {
   expiresAt: number;
 }
 
+export interface HealthResponse {
+  ok: true;
+  service: string;
+  ts: number;
+}
+
 export interface AdminMeResponse {
   sessionId: string;
   createdAt: number;
@@ -95,19 +101,12 @@ export interface CreateOrUpdateEventInput {
 export type CreateEventInput = CreateOrUpdateEventInput;
 export type UpdateEventInput = CreateOrUpdateEventInput;
 
-export type SyncParams =
-  | {
-      cursor?: number;
-      limit?: number;
-      from?: undefined;
-      to?: undefined;
-    }
-  | {
-      cursor?: number;
-      limit?: number;
-      from: string;
-      to: string;
-    };
+export interface SyncParams {
+  cursor?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+}
 
 export interface SyncResponse {
   cursor: number;
@@ -120,6 +119,20 @@ export interface RegisterSubscriptionInput {
   token: string;
   platform: Platform;
   language?: Language;
+}
+
+export interface RegisterSubscriptionResponse {
+  id: string;
+  created?: true;
+  updated?: true;
+}
+
+export interface DeleteSubscriptionResponse {
+  deleted: true;
+}
+
+export interface LogoutResponse {
+  message: string;
 }
 
 export interface NotifyInput {
@@ -137,9 +150,12 @@ export interface NotifyResponse {
   total: number;
   target: NotificationTarget;
   fcmEnabled: boolean;
-  fcmMode: 'legacy' | 'disabled';
+  fcmMode: 'v1' | 'legacy' | 'disabled';
   message?: string;
 }
+
+export type AdminNotifyInput = NotifyInput;
+export type AdminNotifyResponse = NotifyResponse;
 
 export interface FirebaseClientConfig {
   apiKey: string;

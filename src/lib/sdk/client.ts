@@ -1,19 +1,24 @@
 import type {
+  AdminNotifyInput,
+  AdminNotifyResponse,
   AdminMeResponse,
   ApiResponse,
   ClientConfigResponse,
-  CreateEventInput,
+  CreateOrUpdateEventInput,
+  DeleteSubscriptionResponse,
+  HealthResponse,
   ListEventsParams,
   ListEventsResponse,
   LoginRequest,
   LoginResponse,
+  LogoutResponse,
   NotifyInput,
   NotifyResponse,
+  RegisterSubscriptionResponse,
   RegisterSubscriptionInput,
   SyncParams,
   SyncResponse,
   ApiEvent,
-  UpdateEventInput,
 } from './contracts';
 import type { AdminTokenStore, SyncCursorStore } from './stores';
 
@@ -36,14 +41,10 @@ export interface OrthodoxCalendarApiClientOptions {
   defaultHeaders?: Record<string, string>;
 }
 
-type SyncWindowOptions = { from: string; to: string } | { from?: undefined; to?: undefined };
-
-export type SyncAllOptions = {
-  cursor?: number;
-  limit?: number;
+export interface SyncAllOptions extends SyncParams {
   maxPages?: number;
   onPage?: (data: SyncResponse) => Promise<void> | void;
-} & SyncWindowOptions;
+}
 
 function parseRetryAfter(raw: string | null): number | undefined {
   if (!raw) return undefined;
@@ -165,12 +166,12 @@ export class OrthodoxCalendarApiClient {
     return json.data;
   }
 
-  async health(): Promise<{ ok: true; service: string; ts: number }> {
+  async health(): Promise<HealthResponse> {
     const res = await this.fetchImpl(`${this.baseUrl}/health`, { method: 'GET' });
     if (!res.ok) {
       throw new BackendApiError(`Health check failed with HTTP ${res.status}`, 'HTTP_ERROR', res.status);
     }
-    return (await res.json()) as { ok: true; service: string; ts: number };
+    return (await res.json()) as HealthResponse;
   }
 
   async clientConfig(): Promise<ClientConfigResponse> {
@@ -183,10 +184,24 @@ export class OrthodoxCalendarApiClient {
     return data;
   }
 
-  async adminLogout(): Promise<{ message: string }> {
-    const data = await this.request<{ message: string }>('DELETE', '/admin/logout', { auth: true });
+  async adminLogout(): Promise<LogoutResponse> {
+    const data = await this.request<LogoutResponse>('DELETE', '/admin/logout', { auth: true });
     if (this.tokenStore) await this.tokenStore.setToken(null);
     return data;
+  }
+
+  async setAdminToken(token: string | null): Promise<void> {
+    if (!this.tokenStore) {
+      throw new Error('tokenStore is required to persist admin token');
+    }
+    await this.tokenStore.setToken(token);
+  }
+
+  async hasAdminToken(): Promise<boolean> {
+    if (!this.tokenStore) {
+      return false;
+    }
+    return !!(await this.tokenStore.getToken());
   }
 
   async adminMe(): Promise<AdminMeResponse> {
@@ -208,11 +223,11 @@ export class OrthodoxCalendarApiClient {
     return this.request<ApiEvent>('GET', `/events/${encodeURIComponent(id)}`);
   }
 
-  async createEvent(input: CreateEventInput): Promise<ApiEvent> {
+  async createEvent(input: CreateOrUpdateEventInput): Promise<ApiEvent> {
     return this.request<ApiEvent>('POST', '/events', { body: input, auth: true });
   }
 
-  async updateEvent(id: string, input: UpdateEventInput): Promise<ApiEvent> {
+  async updateEvent(id: string, input: CreateOrUpdateEventInput): Promise<ApiEvent> {
     return this.request<ApiEvent>('PUT', `/events/${encodeURIComponent(id)}`, {
       body: input,
       auth: true,
@@ -229,8 +244,8 @@ export class OrthodoxCalendarApiClient {
     const query = OrthodoxCalendarApiClient.toQuery({
       cursor: params.cursor,
       limit: params.limit,
-      from: 'from' in params ? params.from : undefined,
-      to: 'to' in params ? params.to : undefined,
+      from: params.from,
+      to: params.to,
     });
     return this.request<SyncResponse>('GET', `/sync${query}`);
   }
@@ -240,28 +255,18 @@ export class OrthodoxCalendarApiClient {
     const pages: SyncResponse[] = [];
 
     let cursor = options.cursor ?? 0;
-    let hasMore = true;
-
-    for (let page = 0; page < maxPages && hasMore; page++) {
-      const params: SyncParams =
-        options.from !== undefined && options.to !== undefined
-          ? { cursor, limit: options.limit, from: options.from, to: options.to }
-          : { cursor, limit: options.limit };
+    for (let page = 0; page < maxPages; page++) {
+      const params: SyncParams = { cursor };
+      if (options.limit !== undefined) params.limit = options.limit;
+      if (options.from !== undefined) params.from = options.from;
+      if (options.to !== undefined) params.to = options.to;
 
       const data = await this.sync(params);
       pages.push(data);
       await options.onPage?.(data);
 
       cursor = data.cursor;
-      hasMore = data.hasMore;
-    }
-
-    if (hasMore) {
-      throw new BackendApiError(
-        `Sync stopped after maxPages=${maxPages} with hasMore=true`,
-        'SYNC_TRUNCATED',
-        500,
-      );
+      if (!data.hasMore) break;
     }
 
     return pages;
@@ -272,34 +277,25 @@ export class OrthodoxCalendarApiClient {
     options: Omit<SyncAllOptions, 'cursor'> = {},
   ): Promise<SyncResponse[]> {
     const cursor = await cursorStore.getCursor();
-    const common = {
+    const pages = await this.syncAll({
+      ...options,
       cursor,
-      limit: options.limit,
-      maxPages: options.maxPages,
       onPage: async (page: SyncResponse) => {
-        await options.onPage?.(page);
         await cursorStore.setCursor(page.cursor);
+        await options.onPage?.(page);
       },
-    };
-
-    const pages =
-      options.from !== undefined && options.to !== undefined
-        ? await this.syncAll({ ...common, from: options.from, to: options.to })
-        : await this.syncAll(common);
-
+    });
     return pages;
   }
 
-  async registerSubscription(
-    input: RegisterSubscriptionInput,
-  ): Promise<{ id: string; created?: true; updated?: true }> {
-    return this.request<{ id: string; created?: true; updated?: true }>('POST', '/subscriptions', {
+  async registerSubscription(input: RegisterSubscriptionInput): Promise<RegisterSubscriptionResponse> {
+    return this.request<RegisterSubscriptionResponse>('POST', '/subscriptions', {
       body: input,
     });
   }
 
-  async deleteSubscription(token: string): Promise<{ deleted: true }> {
-    return this.request<{ deleted: true }>('DELETE', `/subscriptions/${encodeURIComponent(token)}`);
+  async deleteSubscription(token: string): Promise<DeleteSubscriptionResponse> {
+    return this.request<DeleteSubscriptionResponse>('DELETE', `/subscriptions/${encodeURIComponent(token)}`);
   }
 
   async notify(input: NotifyInput): Promise<NotifyResponse> {
@@ -307,5 +303,9 @@ export class OrthodoxCalendarApiClient {
       body: input,
       auth: true,
     });
+  }
+
+  async adminNotify(input: AdminNotifyInput): Promise<AdminNotifyResponse> {
+    return this.notify(input);
   }
 }
