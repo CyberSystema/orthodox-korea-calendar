@@ -45,8 +45,6 @@
   // svelte-ignore state_referenced_locally
   let formDescKo = $state(editingEvent?.descriptionKo ?? '');
   // svelte-ignore state_referenced_locally
-  let formType = $state(editingEvent?.type ?? 'other');
-  // svelte-ignore state_referenced_locally
   let formAllDay = $state(editingEvent?.allDay ?? true);
   let formNotify = $state(true);
   let formNotificationTarget = $state<NotificationTarget>('all');
@@ -65,15 +63,6 @@
     { value: 'daily', label: t.recurrenceDaily },
     { value: 'weekly', label: t.recurrenceWeekly },
     { value: 'monthly', label: t.recurrenceMonthly },
-  ]);
-
-  let typeOptions = $derived<
-    Array<{ value: 'feast' | 'fast' | 'commemoration' | 'other'; label: string }>
-  >([
-    { value: 'feast', label: t.eventTypeFeast },
-    { value: 'fast', label: t.eventTypeFast },
-    { value: 'commemoration', label: t.eventTypeCommemoration },
-    { value: 'other', label: t.eventTypeOther },
   ]);
 
   let notificationTargetOptions = $derived<Array<{ value: NotificationTarget; label: string }>>([
@@ -155,7 +144,6 @@
           titleKo: formTitleKo,
           descriptionEn: formDescEn,
           descriptionKo: formDescKo,
-          type: formType,
           allDay: formAllDay,
           recurrence: recurrencePayload(),
         });
@@ -166,7 +154,6 @@
           titleKo: formTitleKo,
           descriptionEn: formDescEn,
           descriptionKo: formDescKo,
-          type: formType,
           allDay: formAllDay,
           recurrence: recurrencePayload() || undefined,
         });
@@ -265,15 +252,6 @@
         <span class="field-label">{t.recurrence}</span>
         <select class="field-input" bind:value={formRecurrence}>
           {#each recurrenceOptions as option}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
-      </label>
-
-      <label class="field">
-        <span class="field-label">{t.eventType}</span>
-        <select class="field-input" bind:value={formType}>
-          {#each typeOptions as option}
             <option value={option.value}>{option.label}</option>
           {/each}
         </select>

@@ -33,19 +33,6 @@
     }
   });
 
-  let eventTypeLabel = $derived.by(() => {
-    switch (event.type) {
-      case 'feast':
-        return t.eventTypeFeast;
-      case 'fast':
-        return t.eventTypeFast;
-      case 'commemoration':
-        return t.eventTypeCommemoration;
-      default:
-        return t.eventTypeOther;
-    }
-  });
-
   let recurrenceDetail = $derived.by(() => {
     if (event.recurrence === 'none') return recurrenceLabel;
     const interval =
@@ -169,10 +156,6 @@
     <div class="event-meta-card">
       <span class="event-meta-label">{t.recurrence}</span>
       <span class="event-meta-value">{recurrenceDetail}</span>
-    </div>
-    <div class="event-meta-card">
-      <span class="event-meta-label">{t.eventType}</span>
-      <span class="event-meta-value">{eventTypeLabel}</span>
     </div>
     <div class="event-meta-card">
       <span class="event-meta-label">{t.allDay}</span>
