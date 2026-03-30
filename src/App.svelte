@@ -29,7 +29,14 @@
   import { readParams } from './lib/params';
   import { getTranslations } from './lib/i18n';
   import { toLocalISO } from './lib/date';
-  import { updateLanguageTag } from './lib/fcm';
+  import {
+    canReopenPushBanner,
+    dismissPushBanner,
+    reopenPushBanner,
+    requestPushPermission,
+    showPushBanner,
+    updateLanguageTag,
+  } from './lib/fcm';
   import type { DayData, ParishEvent } from './lib/types';
 
   const params = readParams();
@@ -320,6 +327,9 @@
           {#if $syncInProgress}
             <span class="admin-badge">{t.syncInProgress}</span>
           {/if}
+          {#if $canReopenPushBanner && !$showPushBanner}
+            <button class="hdr-text-btn" onclick={reopenPushBanner}>{t.pushEnableAction}</button>
+          {/if}
           <button
             class="hdr-icon-btn"
             onclick={() => refreshFromSync(true)}
@@ -375,6 +385,19 @@
     </header>
 
     <main>
+      {#if $showPushBanner}
+        <div class="push-banner" role="status" aria-live="polite">
+          <div class="push-banner-text">
+            <strong>{t.pushBannerTitle}</strong>
+            <span>{t.pushBannerBody}</span>
+          </div>
+          <div class="push-banner-actions">
+            <button class="push-btn push-btn-ghost" onclick={dismissPushBanner}>{t.pushBannerLater}</button>
+            <button class="push-btn push-btn-primary" onclick={requestPushPermission}>{t.pushBannerAllow}</button>
+          </div>
+        </div>
+      {/if}
+
       {#if loading}
         <div class="center-msg">
           <span class="cross-pulse">♱</span>
@@ -619,6 +642,25 @@
     border-color: var(--gold);
   }
 
+  .hdr-text-btn {
+    padding: 0.3rem 0.65rem;
+    border: 1px solid rgba(197, 153, 62, 0.45);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--gold-pale);
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .hdr-text-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
+
   .admin-badge {
     font-size: 0.68rem;
     font-weight: 700;
@@ -660,6 +702,53 @@
     max-width: 1100px;
     margin: 0 auto;
     padding: 1.2rem 1rem 2rem;
+  }
+
+  .push-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--gold-dim);
+    background: var(--parchment);
+    border-radius: var(--r-md);
+    margin-bottom: 0.9rem;
+  }
+  .push-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+  }
+  .push-banner-text strong {
+    color: var(--wine);
+    font-family: var(--serif);
+    font-size: 0.96rem;
+  }
+  .push-banner-actions {
+    display: flex;
+    gap: 0.45rem;
+    flex-shrink: 0;
+  }
+  .push-btn {
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--line);
+  }
+  .push-btn-primary {
+    background: var(--wine);
+    color: var(--gold-pale);
+    border-color: var(--wine);
+  }
+  .push-btn-ghost {
+    background: transparent;
+    color: var(--ink-muted);
   }
   .center-msg {
     text-align: center;
@@ -851,6 +940,15 @@
 
   /* ── Responsive ── */
   @media (max-width: 680px) {
+    .push-banner {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .push-banner-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
     .month-title {
       font-size: 1.3rem;
     }

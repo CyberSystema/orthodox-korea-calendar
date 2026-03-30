@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import type { AdminMeResponse, EventType } from './sdk';
+import type { AdminMeResponse, EventType, NotifyResponse } from './sdk';
 import type { ApiEvent, RecurrenceFrequency } from './sdk';
 import type { NotificationTarget, ParishEvent, Recurrence } from './types';
 
@@ -63,7 +63,9 @@ export function toParishEvent(evt: ApiEvent): ParishEvent {
         ? evt.recurrence.interval
         : undefined,
     recurrenceUntil: normalizeText(evt.recurrence?.until) || undefined,
-    createdAt: new Date((evt.createdAt || evt.updatedAt || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+    createdAt: new Date(
+      (evt.createdAt || evt.updatedAt || Math.floor(Date.now() / 1000)) * 1000,
+    ).toISOString(),
   };
 }
 
@@ -195,9 +197,9 @@ function mapNotificationTarget(target: NotificationTarget): 'all' | 'en' | 'ko' 
 export async function notifySubscribers(params: {
   eventId: string;
   target: NotificationTarget;
-}): Promise<void> {
+}): Promise<NotifyResponse> {
   const event = await getEventById(params.eventId);
-  await apiClient.notify({
+  return apiClient.notify({
     target: mapNotificationTarget(params.target),
     title_en: event.titleEn || event.title || '(Untitled Event)',
     title_ko: event.titleKo || event.title || '(행사)',
@@ -210,7 +212,10 @@ export async function notifySubscribers(params: {
   });
 }
 
-export async function registerSubscription(token: string, language: 'en' | 'ko' | 'all'): Promise<void> {
+export async function registerSubscription(
+  token: string,
+  language: 'en' | 'ko' | 'all',
+): Promise<void> {
   await apiClient.registerSubscription({
     token,
     language,

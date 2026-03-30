@@ -55,6 +55,11 @@ export interface Translations {
   allDay: string;
   occurrence: string;
   syncInProgress: string;
+  pushBannerTitle: string;
+  pushBannerBody: string;
+  pushBannerAllow: string;
+  pushBannerLater: string;
+  pushEnableAction: string;
   addToCalendar: string;
   googleCalendar: string;
   appleCalendar: string;
@@ -126,6 +131,11 @@ const en: Translations = {
   allDay: 'All day',
   occurrence: 'Occurrence',
   syncInProgress: 'Syncing events…',
+  pushBannerTitle: 'Enable Notifications',
+  pushBannerBody: 'Get parish event reminders and updates.',
+  pushBannerAllow: 'Allow',
+  pushBannerLater: 'Later',
+  pushEnableAction: 'Enable notifications',
   addToCalendar: 'Add to calendar',
   googleCalendar: 'Google Calendar',
   appleCalendar: 'Apple Calendar (.ics)',
@@ -197,6 +207,11 @@ const kr: Translations = {
   allDay: '종일',
   occurrence: '반복 발생',
   syncInProgress: '행사 동기화 중…',
+  pushBannerTitle: '알림 활성화',
+  pushBannerBody: '교구 행사 알림과 업데이트를 받아보세요.',
+  pushBannerAllow: '허용',
+  pushBannerLater: '나중에',
+  pushEnableAction: '알림 활성화',
   addToCalendar: '캘린더에 추가',
   googleCalendar: '구글 캘린더',
   appleCalendar: '애플 캘린더 (.ics)',

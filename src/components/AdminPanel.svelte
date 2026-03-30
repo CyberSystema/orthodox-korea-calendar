@@ -159,10 +159,35 @@
         });
 
         if (formNotify) {
-          await notifySubscribers({
+          const notifyResult = await notifySubscribers({
             eventId: created.id,
             target: formNotificationTarget,
           });
+
+          if (!notifyResult.fcmEnabled || notifyResult.fcmMode === 'disabled') {
+            formError =
+              notifyResult.message ||
+              'Event saved, but push delivery is disabled on the backend (FCM not configured).';
+            formLoading = false;
+            await refreshEvents();
+            return;
+          }
+
+          if (notifyResult.sent === 0) {
+            formError =
+              notifyResult.message ||
+              'Event saved, but no notifications were delivered. Check subscription status and FCM credentials.';
+            formLoading = false;
+            await refreshEvents();
+            return;
+          }
+
+          if (notifyResult.failed > 0) {
+            formError = `Event saved. Notification partial result: sent ${notifyResult.sent}, failed ${notifyResult.failed}.`;
+            formLoading = false;
+            await refreshEvents();
+            return;
+          }
         }
       }
       await refreshEvents();

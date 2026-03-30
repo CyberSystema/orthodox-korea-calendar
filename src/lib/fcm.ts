@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
 import { deleteToken, getMessaging, getToken, isSupported, type Messaging, onMessage } from 'firebase/messaging';
+import { writable } from 'svelte/store';
 import { apiClient } from './apiClient';
 import { registerSubscription, unregisterSubscription } from './events';
 
@@ -10,12 +11,27 @@ let currentLang: 'en' | 'kr' = 'en';
 let cachedFirebaseConfig: FirebaseOptions | null = null;
 let cachedVapidKey = '';
 
+const PUSH_BANNER_DISMISSED_KEY = 'okc_push_banner_dismissed';
+export const showPushBanner = writable(false);
+export const canReopenPushBanner = writable(false);
+
 function isTopLevelWindow(): boolean {
   try {
     return window.top === window.self;
   } catch {
     return false;
   }
+}
+
+function isBannerDismissed(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  return localStorage.getItem(PUSH_BANNER_DISMISSED_KEY) === '1';
+}
+
+function setBannerDismissed(value: boolean): void {
+  if (typeof localStorage === 'undefined') return;
+  if (value) localStorage.setItem(PUSH_BANNER_DISMISSED_KEY, '1');
+  else localStorage.removeItem(PUSH_BANNER_DISMISSED_KEY);
 }
 
 function toBackendLanguage(lang: 'en' | 'kr'): 'en' | 'ko' {
@@ -147,23 +163,43 @@ async function unsubscribeCurrentToken(): Promise<void> {
   currentToken = '';
 }
 
-function promptForPermissionOnFirstInteraction(lang: 'en' | 'kr') {
-  const handler = () => {
-    void (async () => {
-      try {
-        if (typeof Notification === 'undefined') return;
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          await refreshFcmToken(lang);
-        }
-      } catch {
-        // Best effort.
-      }
-    })();
-  };
+export async function requestPushPermission(): Promise<void> {
+  try {
+    if (typeof Notification === 'undefined') return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      await refreshFcmToken(currentLang);
+      showPushBanner.set(false);
+      canReopenPushBanner.set(false);
+      setBannerDismissed(true);
+      return;
+    }
 
-  window.addEventListener('pointerdown', handler, { once: true });
-  window.addEventListener('keydown', handler, { once: true });
+    if (permission === 'denied') {
+      showPushBanner.set(false);
+      canReopenPushBanner.set(false);
+      setBannerDismissed(true);
+      return;
+    }
+
+    canReopenPushBanner.set(true);
+  } catch {
+    // Best effort.
+  }
+}
+
+export function dismissPushBanner(): void {
+  showPushBanner.set(false);
+  canReopenPushBanner.set(true);
+  setBannerDismissed(true);
+}
+
+export function reopenPushBanner(): void {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'default') return;
+  setBannerDismissed(false);
+  canReopenPushBanner.set(true);
+  showPushBanner.set(true);
 }
 
 export async function updateLanguageTag(lang: 'en' | 'kr'): Promise<void> {
@@ -193,13 +229,18 @@ export async function initFcm(lang: 'en' | 'kr'): Promise<void> {
   const permission = Notification.permission;
   if (permission === 'granted') {
     await refreshFcmToken(lang);
+    showPushBanner.set(false);
+    canReopenPushBanner.set(false);
     return;
   }
 
   if (permission === 'denied') {
     await unsubscribeCurrentToken();
+    showPushBanner.set(false);
+    canReopenPushBanner.set(false);
     return;
   }
 
-  promptForPermissionOnFirstInteraction(lang);
+  canReopenPushBanner.set(true);
+  showPushBanner.set(!isBannerDismissed());
 }
