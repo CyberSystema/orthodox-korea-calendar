@@ -201,11 +201,7 @@ export async function notifySubscribers(params: {
 }): Promise<NotifyResponse> {
   const hasToken = await apiClient.hasAdminToken();
   if (!hasToken) {
-    throw new BackendApiError(
-      'Please login first before sending notifications.',
-      'UNAUTHORIZED',
-      401,
-    );
+    throw new BackendApiError('Please sign in first.', 'UNAUTHORIZED', 401);
   }
 
   const event = await getEventById(params.eventId);

@@ -215,16 +215,41 @@ function setupTokenRefreshHooks(): void {
   window.setInterval(refresh, 30 * 60 * 1000);
 }
 
+function buildEventUrlFromPayload(payload: MessagePayload): string {
+  const data = payload.data || {};
+  const eventId = data.eventId || data.event_id || data.id;
+  const eventDate = data.date || data.eventDate || data.event_date;
+  const explicitUrl = data.url;
+
+  if (typeof explicitUrl === 'string' && explicitUrl.trim()) {
+    return explicitUrl;
+  }
+
+  if (typeof eventId === 'string' && eventId) {
+    const params = new URLSearchParams({ event: eventId });
+    if (typeof eventDate === 'string' && eventDate) {
+      params.set('date', eventDate);
+    }
+    return `/?${params.toString()}`;
+  }
+
+  return '/';
+}
+
 async function showForegroundNotification(payload: MessagePayload): Promise<void> {
   if (typeof Notification === 'undefined') return;
   if (Notification.permission !== 'granted') return;
 
   const title = payload.notification?.title || payload.data?.title || 'Orthodox Korea';
   const body = payload.notification?.body || payload.data?.body || '';
+  const clickUrl = buildEventUrlFromPayload(payload);
 
   const options: NotificationOptions = {
     body,
-    data: payload.data || {},
+    data: {
+      ...(payload.data || {}),
+      clickUrl,
+    },
   };
 
   if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -235,7 +260,13 @@ async function showForegroundNotification(payload: MessagePayload): Promise<void
     }
   }
 
-  new Notification(title, options);
+  const notification = new Notification(title, options);
+  notification.onclick = (event) => {
+    event.preventDefault();
+    window.focus();
+    window.location.href = clickUrl;
+    notification.close();
+  };
 }
 
 export async function ensureFcmSubscriptionUpToDate(): Promise<void> {

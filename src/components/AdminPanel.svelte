@@ -160,27 +160,21 @@
         });
 
         if (!notifyResult.fcmEnabled || notifyResult.fcmMode === 'disabled') {
-          formError =
-            notifyResult.message ||
-            'Event saved, but push delivery is disabled on the backend (FCM not configured).';
+          formError = 'Event saved, but notifications are currently unavailable.';
           formLoading = false;
           await refreshEvents();
           return;
         }
 
         if (notifyResult.sent === 0) {
-          formError =
-            notifyResult.message ||
-            'Event saved, but no notifications were delivered. Check subscription status and FCM credentials.';
+          formError = 'Event saved, but notifications could not be delivered.';
           formLoading = false;
           await refreshEvents();
           return;
         }
 
         if (notifyResult.failed > 0) {
-          formNotice =
-            notifyResult.message ||
-            `Event saved and delivered to ${notifyResult.sent} device(s). ${notifyResult.failed} delivery attempt(s) failed (likely stale or expired subscriptions).`;
+          formNotice = 'Event saved and notification was sent.';
           formLoading = false;
           await refreshEvents();
           return;

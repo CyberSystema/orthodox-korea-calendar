@@ -25,7 +25,9 @@
   class:high-rank={isHigh}
   onclick={onSelect}
 >
-  <span class="num" class:num-red={isSunday || isHigh}>{cell.date?.getDate()}</span>
+  <span class="num" class:num-red={isSunday && !isHigh} class:num-high={isHigh}
+    >{cell.date?.getDate()}</span
+  >
 
   {#if cell.isToday}
     <span class="today-mark"></span>
@@ -96,9 +98,21 @@
     line-height: 1;
     color: var(--ink);
     margin-bottom: 0.2rem;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    transition: background 0.15s ease, color 0.15s ease;
   }
   .num-red {
     color: var(--crimson);
+  }
+  .num-high {
+    background: var(--crimson);
+    color: #fff;
+    box-shadow: 0 1px 0 rgba(58, 10, 10, 0.14), 0 2px 6px rgba(58, 10, 10, 0.16);
   }
 
   /* ── Today dot ── */
@@ -165,6 +179,8 @@
     }
     .num {
       font-size: 1.1rem;
+      width: 1.65rem;
+      height: 1.65rem;
     }
     .title {
       font-size: 0.6rem;

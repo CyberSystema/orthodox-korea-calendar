@@ -5,6 +5,7 @@ import type {
   ApiResponse,
   ClientConfigResponse,
   CreateOrUpdateEventInput,
+  DeleteEventResponse,
   DeleteSubscriptionResponse,
   HealthResponse,
   ListEventsParams,
@@ -14,6 +15,7 @@ import type {
   LogoutResponse,
   NotifyInput,
   NotifyResponse,
+  RateLimitedDetails,
   RegisterSubscriptionResponse,
   RegisterSubscriptionInput,
   SyncParams,
@@ -46,23 +48,6 @@ export interface SyncAllOptions extends SyncParams {
   onPage?: (data: SyncResponse) => Promise<void> | void;
 }
 
-function parseRetryAfter(raw: string | null): number | undefined {
-  if (!raw) return undefined;
-  const n = Number.parseInt(raw, 10);
-  if (Number.isFinite(n) && n >= 0) return n;
-  const when = Date.parse(raw);
-  if (Number.isNaN(when)) return undefined;
-  return Math.max(0, Math.ceil((when - Date.now()) / 1000));
-}
-
-function extractRetryAfter(details: unknown): number | undefined {
-  const d = details as Record<string, unknown> | undefined;
-  if (!d) return undefined;
-  if (typeof d.retryAfter === 'number') return d.retryAfter;
-  if (typeof d.retry_after === 'number') return d.retry_after;
-  return undefined;
-}
-
 export class OrthodoxCalendarApiClient {
   private readonly fetchImpl: typeof fetch;
   private readonly baseUrl: string;
@@ -88,6 +73,33 @@ export class OrthodoxCalendarApiClient {
     }
     const out = qs.toString();
     return out ? `?${out}` : '';
+  }
+
+  private static parseRetryAfterHeader(value: string | null): number | undefined {
+    if (!value) return undefined;
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+    return undefined;
+  }
+
+  private static toBackendError(
+    status: number,
+    code: string,
+    message: string,
+    details: unknown,
+    retryAfterHeader: string | null,
+  ): BackendApiError {
+    const retryAfter = OrthodoxCalendarApiClient.parseRetryAfterHeader(retryAfterHeader);
+    if ((code === 'RATE_LIMITED' || status === 429) && retryAfter !== undefined) {
+      const mergedDetails: RateLimitedDetails =
+        details && typeof details === 'object'
+          ? { ...(details as Record<string, unknown>), retryAfter }
+          : { retryAfter };
+      return new BackendApiError(message, code, status, mergedDetails, retryAfter);
+    }
+    return new BackendApiError(message, code, status, details, retryAfter);
   }
 
   private async request<T>(
@@ -120,46 +132,42 @@ export class OrthodoxCalendarApiClient {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    let res: Response;
-    try {
-      res = await this.fetchImpl(`${this.baseUrl}${path}`, {
-        method,
-        headers,
-        ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
-      });
-    } catch (e) {
-      throw new BackendApiError(
-        e instanceof Error ? e.message : 'Network request failed',
-        'NETWORK_ERROR',
-        0,
-      );
-    }
-
-    const retryAfterHeader = parseRetryAfter(res.headers.get('Retry-After'));
+    const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+      method,
+      headers,
+      ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+    });
+    const retryAfterHeader = res.headers.get('Retry-After');
 
     let json: ApiResponse<T> | null = null;
     try {
       json = (await res.json()) as ApiResponse<T>;
     } catch {
       if (!res.ok) {
-        throw new BackendApiError(
-          `HTTP ${res.status} without JSON body`,
-          'HTTP_ERROR',
+        throw OrthodoxCalendarApiClient.toBackendError(
           res.status,
+          'HTTP_ERROR',
+          `HTTP ${res.status} without JSON body`,
           undefined,
           retryAfterHeader,
         );
       }
-      throw new BackendApiError('Expected JSON response', 'INVALID_RESPONSE', res.status);
+      throw OrthodoxCalendarApiClient.toBackendError(
+        res.status,
+        'INVALID_RESPONSE',
+        'Expected JSON response',
+        undefined,
+        retryAfterHeader,
+      );
     }
 
     if (!json.ok) {
-      throw new BackendApiError(
-        json.error.message,
-        json.error.code,
+      throw OrthodoxCalendarApiClient.toBackendError(
         res.status,
+        json.error.code,
+        json.error.message,
         json.error.details,
-        retryAfterHeader ?? extractRetryAfter(json.error.details),
+        retryAfterHeader,
       );
     }
 
@@ -169,7 +177,11 @@ export class OrthodoxCalendarApiClient {
   async health(): Promise<HealthResponse> {
     const res = await this.fetchImpl(`${this.baseUrl}/health`, { method: 'GET' });
     if (!res.ok) {
-      throw new BackendApiError(`Health check failed with HTTP ${res.status}`, 'HTTP_ERROR', res.status);
+      throw new BackendApiError(
+        `Health check failed with HTTP ${res.status}`,
+        'HTTP_ERROR',
+        res.status,
+      );
     }
     return (await res.json()) as HealthResponse;
   }
@@ -235,7 +247,7 @@ export class OrthodoxCalendarApiClient {
   }
 
   async deleteEvent(id: string): Promise<{ id: string; deleted: true }> {
-    return this.request<{ id: string; deleted: true }>('DELETE', `/events/${encodeURIComponent(id)}`, {
+    return this.request<DeleteEventResponse>('DELETE', `/events/${encodeURIComponent(id)}`, {
       auth: true,
     });
   }
@@ -288,14 +300,19 @@ export class OrthodoxCalendarApiClient {
     return pages;
   }
 
-  async registerSubscription(input: RegisterSubscriptionInput): Promise<RegisterSubscriptionResponse> {
+  async registerSubscription(
+    input: RegisterSubscriptionInput,
+  ): Promise<RegisterSubscriptionResponse> {
     return this.request<RegisterSubscriptionResponse>('POST', '/subscriptions', {
       body: input,
     });
   }
 
   async deleteSubscription(token: string): Promise<DeleteSubscriptionResponse> {
-    return this.request<DeleteSubscriptionResponse>('DELETE', `/subscriptions/${encodeURIComponent(token)}`);
+    return this.request<DeleteSubscriptionResponse>(
+      'DELETE',
+      `/subscriptions/${encodeURIComponent(token)}`,
+    );
   }
 
   async notify(input: NotifyInput): Promise<NotifyResponse> {

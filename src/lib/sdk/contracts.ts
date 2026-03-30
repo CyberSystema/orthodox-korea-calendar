@@ -80,6 +80,11 @@ export interface ListEventsResponse {
   count: number;
 }
 
+export interface DeleteEventResponse {
+  id: string;
+  deleted: true;
+}
+
 export interface CreateOrUpdateEventInput {
   title_en?: string;
   title_ko?: string;
@@ -89,13 +94,11 @@ export interface CreateOrUpdateEventInput {
   type?: EventType;
   color?: string | null;
   all_day?: boolean;
-  recurrence?:
-    | {
-        frequency: RecurrenceFrequency;
-        interval?: number;
-        until?: string | null;
-      }
-    | null;
+  recurrence?: {
+    frequency: RecurrenceFrequency;
+    interval?: number;
+    until?: string | null;
+  } | null;
 }
 
 export type CreateEventInput = CreateOrUpdateEventInput;
@@ -156,6 +159,10 @@ export interface NotifyResponse {
 
 export type AdminNotifyInput = NotifyInput;
 export type AdminNotifyResponse = NotifyResponse;
+
+export interface RateLimitedDetails {
+  retryAfter?: number;
+}
 
 export interface FirebaseClientConfig {
   apiKey: string;
