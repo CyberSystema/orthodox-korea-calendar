@@ -50,6 +50,7 @@
   let selectedEvent = $state<ParishEvent | null>(null);
   let pendingEventId = $state(params.eventId);
   let pendingEventDate = $state(params.eventDate);
+  let loadedEventYears = $state<Set<number>>(new Set());
 
   if (params.lang) {
     language.set(params.lang);
@@ -171,9 +172,13 @@
         error = true;
       }
       await loadEvents(initialYear);
+      loadedEventYears.add(initialYear);
+
       // Preload next year silently
       ensureYear(initialYear + 1).catch(() => {});
-      loadEvents(initialYear + 1).catch(() => {});
+      loadEvents(initialYear + 1)
+        .then(() => loadedEventYears.add(initialYear + 1))
+        .catch(() => {});
     } catch (e: any) {
       errorMsg = e.message || 'Failed to load.';
       error = true;
@@ -190,19 +195,49 @@
       ) ?? currentEvents.find((evt) => evt.id === pendingEventId);
 
     if (matched) {
+      // Navigate to correct month if event date is available
+      if (isValidISODate(matched.date)) {
+        const eventYear = Number.parseInt(matched.date.slice(0, 4), 10);
+        const eventMonth = Number.parseInt(matched.date.slice(5, 7), 10) - 1;
+        if (!Number.isNaN(eventYear) && !Number.isNaN(eventMonth)) {
+          if (eventYear !== $currentYear) {
+            currentYear.set(eventYear);
+            loadedEventYears.add(eventYear);
+          }
+          if (eventMonth !== $currentMonth) {
+            currentMonth.set(eventMonth);
+          }
+        }
+      }
+
       selectedDay.set(null);
       selectedEvent = matched;
+      syncEventUrl(matched);
       pendingEventId = null;
       pendingEventDate = null;
       return;
     }
 
+    // Only clear pending flags if we've confirmed events are loaded for this year
     if (
       isValidISODate(pendingEventDate) &&
-      Number.parseInt(pendingEventDate.slice(0, 4), 10) === $currentYear
+      Number.parseInt(pendingEventDate.slice(0, 4), 10) === $currentYear &&
+      loadedEventYears.has($currentYear)
     ) {
       pendingEventId = null;
       pendingEventDate = null;
+    }
+  });
+
+  // Load events when navigating to a year with a pending event
+  $effect(() => {
+    if (pendingEventId && isValidISODate(pendingEventDate) && !loading) {
+      const pendingYear = Number.parseInt(pendingEventDate.slice(0, 4), 10);
+      if (pendingYear === $currentYear && !loadedEventYears.has(pendingYear)) {
+        loadEvents(pendingYear)
+          .then(() => loadedEventYears.add(pendingYear))
+          .catch(() => {});
+      }
     }
   });
 
@@ -392,8 +427,12 @@
             <span>{t.pushBannerBody}</span>
           </div>
           <div class="push-banner-actions">
-            <button class="push-btn push-btn-ghost" onclick={dismissPushBanner}>{t.pushBannerLater}</button>
-            <button class="push-btn push-btn-primary" onclick={requestPushPermission}>{t.pushBannerAllow}</button>
+            <button class="push-btn push-btn-ghost" onclick={dismissPushBanner}
+              >{t.pushBannerLater}</button
+            >
+            <button class="push-btn push-btn-primary" onclick={requestPushPermission}
+              >{t.pushBannerAllow}</button
+            >
           </div>
         </div>
       {/if}
