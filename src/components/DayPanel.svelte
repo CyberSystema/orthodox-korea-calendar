@@ -28,6 +28,9 @@
   let dayOfWeek = $derived(dateObj.toLocaleDateString(locale, { weekday: 'long' }));
   let dayNum = $derived(dateObj.getDate());
   let monthYear = $derived(dateObj.toLocaleDateString(locale, { month: 'long', year: 'numeric' }));
+  let hasHighRankCelebration = $derived(
+    day.content.some((entry: DayData['content'][number]) => entry.fields.high_rank),
+  );
 
   let dayEvents = $derived(events.filter((e: ParishEvent) => e.date === day.date));
 
@@ -64,7 +67,7 @@
 <div class="panel">
   <!-- Date header -->
   <div class="panel-head">
-    <div class="date-ring"><span>{dayNum}</span></div>
+    <div class="date-ring" class:date-ring-high={hasHighRankCelebration}><span>{dayNum}</span></div>
     <div class="date-text">
       <span class="wday">{dayOfWeek}</span>
       <span class="monyear">{monthYear}</span>
@@ -209,6 +212,12 @@
     font-size: 1.7rem;
     font-weight: 700;
     line-height: 1;
+  }
+  .date-ring-high {
+    background: var(--crimson);
+    color: #fff;
+    border-color: var(--crimson);
+    box-shadow: 0 2px 8px rgba(58, 10, 10, 0.18);
   }
   .date-text {
     display: flex;
