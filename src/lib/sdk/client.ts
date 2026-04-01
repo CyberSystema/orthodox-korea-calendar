@@ -57,7 +57,12 @@ export class OrthodoxCalendarApiClient {
 
   constructor(baseUrl: string, options: OrthodoxCalendarApiClientOptions = {}) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    const rawFetch = options.fetchImpl ?? globalThis.fetch;
+    if (typeof rawFetch !== "function") {
+      throw new Error("fetch is not available in this runtime");
+    }
+    this.fetchImpl = ((input: RequestInfo | URL, init?: RequestInit) =>
+      rawFetch.call(globalThis, input, init)) as typeof fetch;
     this.tokenStore = options.tokenStore;
     this.defaultHeaders = options.defaultHeaders ?? {};
   }
