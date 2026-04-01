@@ -1,8 +1,8 @@
-export type EventType = 'feast' | 'fast' | 'commemoration' | 'other';
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
-export type Platform = 'ios' | 'android' | 'web';
-export type Language = 'en' | 'ko' | 'all';
-export type NotificationTarget = 'all' | 'en' | 'ko';
+export type EventType = "feast" | "fast" | "commemoration" | "other";
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
+export type Platform = "ios" | "android" | "web";
+export type Language = "en" | "ko" | "all";
+export type NotificationTarget = "all" | "en" | "ko";
 
 export interface ApiError {
   code: string;
@@ -23,7 +23,7 @@ export interface ApiErrorResponse {
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 export interface EventRecurrence {
-  frequency: RecurrenceFrequency;
+  frequency: "daily" | "weekly" | "monthly";
   interval: number;
   until: string | null;
 }
@@ -35,7 +35,7 @@ export interface ApiEvent {
   title: { en: string; ko: string };
   description: { en: string; ko: string };
   date: string;
-  type: EventType;
+  type: "feast" | "fast" | "commemoration" | "other";
   color: string | null;
   recurrence?: EventRecurrence;
   allDay: boolean;
@@ -46,6 +46,10 @@ export interface ApiEvent {
 export interface LoginRequest {
   username: string;
   password: string;
+}
+
+export interface StaffLoginRequest {
+  passcode: string;
 }
 
 export interface LoginResponse {
@@ -68,7 +72,7 @@ export interface AdminMeResponse {
 export interface ListEventsParams {
   from?: string;
   to?: string;
-  type?: EventType;
+  type?: "feast" | "fast" | "commemoration" | "other";
   limit?: number;
   offset?: number;
 }
@@ -91,18 +95,17 @@ export interface CreateOrUpdateEventInput {
   description_en?: string;
   description_ko?: string;
   date?: string;
-  type?: EventType;
+  type?: "feast" | "fast" | "commemoration" | "other";
   color?: string | null;
   all_day?: boolean;
-  recurrence?: {
-    frequency: RecurrenceFrequency;
-    interval?: number;
-    until?: string | null;
-  } | null;
+  recurrence?:
+    | {
+        frequency: "daily" | "weekly" | "monthly";
+        interval?: number;
+        until?: string | null;
+      }
+    | null;
 }
-
-export type CreateEventInput = CreateOrUpdateEventInput;
-export type UpdateEventInput = CreateOrUpdateEventInput;
 
 export interface SyncParams {
   cursor?: number;
@@ -120,8 +123,9 @@ export interface SyncResponse {
 
 export interface RegisterSubscriptionInput {
   token: string;
-  platform: Platform;
-  language?: Language;
+  platform: "ios" | "android" | "web";
+  language?: "en" | "ko" | "all";
+  environment?: "sandbox" | "production";
 }
 
 export interface RegisterSubscriptionResponse {
@@ -139,7 +143,7 @@ export interface LogoutResponse {
 }
 
 export interface NotifyInput {
-  target: NotificationTarget;
+  target: "all" | "en" | "ko";
   title_en: string;
   title_ko: string;
   body_en?: string;
@@ -151,9 +155,10 @@ export interface NotifyResponse {
   sent: number;
   failed: number;
   total: number;
-  target: NotificationTarget;
+  target: "all" | "en" | "ko";
   fcmEnabled: boolean;
-  fcmMode: 'v1' | 'legacy' | 'disabled';
+  fcmMode: "v1" | "legacy" | "disabled";
+  apnsEnabled: boolean;
   message?: string;
 }
 

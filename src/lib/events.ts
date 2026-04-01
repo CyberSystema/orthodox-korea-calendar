@@ -75,8 +75,8 @@ export async function fetchEventsRange(from: string, to: string): Promise<Parish
   return (data.events || []).map(toParishEvent);
 }
 
-export async function loginAdmin(password: string): Promise<AdminSessionData> {
-  return apiClient.adminLogin({ username: 'okn_admin', password });
+export async function loginAdmin(passcode: string): Promise<AdminSessionData> {
+  return apiClient.staffLogin({ passcode });
 }
 
 export async function getAdminMe(): Promise<AdminMeResponse> {
