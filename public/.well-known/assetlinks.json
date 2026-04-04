@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cybersystema.okncalendar",
+      "sha256_cert_fingerprints": [
+        "5B:FC:62:CB:9C:2E:28:14:76:99:53:BD:91:17:B8:B7:93:FB:30:05:E9:04:AB:2D:4E:93:FD:96:FA:42:4E:6B"
+      ]
+    }
+  }
+]

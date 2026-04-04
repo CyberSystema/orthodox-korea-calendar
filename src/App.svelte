@@ -6,6 +6,7 @@
   import TodayWidget from './components/TodayWidget.svelte';
   import Modal from './components/Modal.svelte';
   import AdminPanel from './components/AdminPanel.svelte';
+  import ByzantineSplashScreen from './components/ByzantineSplashScreen.svelte';
   import {
     cacheEN,
     cacheKR,
@@ -42,6 +43,7 @@
   const params = readParams();
 
   let loading = $state(true);
+  let splashMinElapsed = $state(false);
   let error = $state(false);
   let errorMsg = $state('');
   let showAdmin = $state(false);
@@ -120,6 +122,8 @@
     return $currentYear !== now.getFullYear() || $currentMonth !== now.getMonth();
   });
 
+  let showSplash = $derived(loading || !splashMinElapsed);
+
   async function loadYearAndEvents(year: number) {
     await ensureYear(year);
     await loadEvents(year);
@@ -151,39 +155,52 @@
     window.history.replaceState({}, '', url);
   }
 
-  onMount(async () => {
-    try {
-      const thisYear = new Date().getFullYear();
-      const initialDate = isValidISODate(params.eventDate) ? params.eventDate : null;
-      const initialYear = initialDate ? Number.parseInt(initialDate.slice(0, 4), 10) : thisYear;
-      const initialMonth = initialDate
-        ? Number.parseInt(initialDate.slice(5, 7), 10) - 1
-        : new Date().getMonth();
+  onMount(() => {
+    const splashTimer = window.setTimeout(() => {
+      splashMinElapsed = true;
+    }, 5000);
 
-      currentYear.set(initialYear);
-      currentMonth.set(initialMonth);
+    const bootstrap = async () => {
+      try {
+        const thisYear = new Date().getFullYear();
+        const initialDate = isValidISODate(params.eventDate) ? params.eventDate : null;
+        const initialYear = initialDate ? Number.parseInt(initialDate.slice(0, 4), 10) : thisYear;
+        const initialMonth = initialDate
+          ? Number.parseInt(initialDate.slice(5, 7), 10) - 1
+          : new Date().getMonth();
 
-      await ensureAdminSession();
-      await refreshFromSync();
+        currentYear.set(initialYear);
+        currentMonth.set(initialMonth);
 
-      const ok = await ensureYear(initialYear);
-      if (!ok) {
-        errorMsg = `No calendar data available for ${initialYear}.`;
+        await ensureAdminSession();
+        await refreshFromSync();
+
+        const ok = await ensureYear(initialYear);
+        if (!ok) {
+          errorMsg = `No calendar data available for ${initialYear}.`;
+          error = true;
+        }
+        await loadEvents(initialYear);
+        loadedEventYears.add(initialYear);
+
+        // Preload next year silently.
+        ensureYear(initialYear + 1).catch(() => {});
+        loadEvents(initialYear + 1)
+          .then(() => loadedEventYears.add(initialYear + 1))
+          .catch(() => {});
+      } catch (e: any) {
+        errorMsg = e.message || 'Failed to load.';
         error = true;
       }
-      await loadEvents(initialYear);
-      loadedEventYears.add(initialYear);
 
-      // Preload next year silently
-      ensureYear(initialYear + 1).catch(() => {});
-      loadEvents(initialYear + 1)
-        .then(() => loadedEventYears.add(initialYear + 1))
-        .catch(() => {});
-    } catch (e: any) {
-      errorMsg = e.message || 'Failed to load.';
-      error = true;
-    }
-    loading = false;
+      loading = false;
+    };
+
+    void bootstrap();
+
+    return () => {
+      window.clearTimeout(splashTimer);
+    };
   });
 
   $effect(() => {
@@ -349,6 +366,10 @@
   <!-- ═══ FULL CALENDAR ═══ -->
 {:else}
   <div class="app">
+    {#if showSplash}
+      <ByzantineSplashScreen />
+    {/if}
+
     <header class="hdr">
       <div class="hdr-inner">
         <div class="brand">

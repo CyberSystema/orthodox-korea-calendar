@@ -19,6 +19,7 @@ let currentLang: 'en' | 'kr' = 'en';
 let cachedFirebaseConfig: FirebaseOptions | null = null;
 let cachedVapidKey = '';
 let tokenRefreshHooksInstalled = false;
+const APP_LINK_ORIGIN = 'https://orthodox-korea-calendar.pages.dev';
 
 const PUSH_BANNER_DISMISSED_KEY = 'okc_push_banner_dismissed';
 const PUSH_PERMISSION_PROMPTED_KEY = 'okc_push_permission_prompted';
@@ -215,6 +216,41 @@ function setupTokenRefreshHooks(): void {
   window.setInterval(refresh, 30 * 60 * 1000);
 }
 
+function buildAppLink(pathAndQuery: string): string {
+  return new URL(pathAndQuery, APP_LINK_ORIGIN).toString();
+}
+
+function normalizeNotificationUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return '/';
+  }
+
+  if (trimmed.startsWith('okncalendar://') || trimmed.startsWith('orthodoxkorea://')) {
+    const normalized = trimmed.replace(/^orthodoxkorea:\/\//, 'okncalendar://');
+
+    if (normalized === 'okncalendar://today') {
+      return buildAppLink('/?view=today');
+    }
+
+    const match = normalized.match(/^okncalendar:\/\/event\/([^?]+)(?:\?(.*))?$/);
+    if (!match) {
+      return '/';
+    }
+
+    const [, eventId, rawQuery = ''] = match;
+    const query = new URLSearchParams(rawQuery);
+    const date = query.get('date') || query.get('dateISO');
+    const webParams = new URLSearchParams({ event: decodeURIComponent(eventId) });
+    if (date) {
+      webParams.set('date', date);
+    }
+    return buildAppLink(`/?${webParams.toString()}`);
+  }
+
+  return trimmed;
+}
+
 function buildEventUrlFromPayload(payload: MessagePayload): string {
   const data = payload.data || {};
   const eventId = data.eventId || data.event_id || data.id;
@@ -222,7 +258,7 @@ function buildEventUrlFromPayload(payload: MessagePayload): string {
   const explicitUrl = data.url;
 
   if (typeof explicitUrl === 'string' && explicitUrl.trim()) {
-    return explicitUrl;
+    return normalizeNotificationUrl(explicitUrl);
   }
 
   if (typeof eventId === 'string' && eventId) {
@@ -230,10 +266,10 @@ function buildEventUrlFromPayload(payload: MessagePayload): string {
     if (typeof eventDate === 'string' && eventDate) {
       params.set('date', eventDate);
     }
-    return `/?${params.toString()}`;
+    return buildAppLink(`/?${params.toString()}`);
   }
 
-  return '/';
+  return buildAppLink('/');
 }
 
 async function showForegroundNotification(payload: MessagePayload): Promise<void> {

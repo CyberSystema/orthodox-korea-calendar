@@ -13,6 +13,42 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const APP_LINK_ORIGIN = 'https://orthodox-korea-calendar.pages.dev';
+
+function buildAppLink(pathAndQuery) {
+  return new URL(pathAndQuery, APP_LINK_ORIGIN).toString();
+}
+
+function normalizeNotificationUrl(url) {
+  if (typeof url !== 'string') return '/';
+
+  const trimmed = url.trim();
+  if (!trimmed) return '/';
+
+  if (trimmed.startsWith('okncalendar://') || trimmed.startsWith('orthodoxkorea://')) {
+    const normalized = trimmed.replace(/^orthodoxkorea:\/\//, 'okncalendar://');
+
+    if (normalized === 'okncalendar://today') {
+      return buildAppLink('/?view=today');
+    }
+
+    const match = normalized.match(/^okncalendar:\/\/event\/([^?]+)(?:\?(.*))?$/);
+    if (!match) {
+      return '/';
+    }
+
+    const eventId = decodeURIComponent(match[1]);
+    const query = new URLSearchParams(match[2] || '');
+    const date = query.get('date') || query.get('dateISO');
+    const webParams = new URLSearchParams({ event: eventId });
+    if (date) {
+      webParams.set('date', date);
+    }
+    return buildAppLink(`/?${webParams.toString()}`);
+  }
+
+  return trimmed;
+}
 
 function buildEventUrl(data) {
   if (!data || typeof data !== 'object') return '/';
@@ -21,7 +57,7 @@ function buildEventUrl(data) {
   const eventDate = data.date || data.eventDate || data.event_date;
 
   if (typeof data.url === 'string' && data.url.trim()) {
-    return data.url;
+    return normalizeNotificationUrl(data.url);
   }
 
   if (typeof eventId === 'string' && eventId) {
@@ -29,10 +65,10 @@ function buildEventUrl(data) {
     if (typeof eventDate === 'string' && eventDate) {
       params.set('date', eventDate);
     }
-    return `/?${params.toString()}`;
+    return buildAppLink(`/?${params.toString()}`);
   }
 
-  return '/';
+  return buildAppLink('/');
 }
 
 messaging.onBackgroundMessage((payload) => {
@@ -52,7 +88,7 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const clickUrl = (event.notification?.data && event.notification.data.clickUrl) || '/';
+  const clickUrl = (event.notification?.data && event.notification.data.clickUrl) || buildAppLink('/');
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
