@@ -1,312 +1,483 @@
 <div align="center">
 
-# Orthodox Korea Calendar
+<br>
 
-A bilingual liturgical calendar for the Orthodox Metropolis of Korea, built with Svelte 5 and deployed on Cloudflare Pages.
+# &#9766; Orthodox Korea Calendar
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-![Svelte 5](https://img.shields.io/badge/Svelte-5-ff3e00?logo=svelte&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178c6?logo=typescript&logoColor=white)
-![Vite 7](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white)
-![Cloudflare Pages](https://img.shields.io/badge/Deploy-Cloudflare%20Pages-f38020?logo=cloudflare&logoColor=white)
+### A bilingual liturgical calendar for the Orthodox Metropolis of Korea
 
-</div>
+*Byzantine-inspired design &bull; English & Korean &bull; Push notifications &bull; Embeddable widgets*
+
+<br>
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
+&nbsp;
+![Svelte 5](https://img.shields.io/badge/Svelte_5-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
+&nbsp;
+![TypeScript](https://img.shields.io/badge/TypeScript_5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+&nbsp;
+![Vite 7](https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+&nbsp;
+![Cloudflare](https://img.shields.io/badge/Cloudflare_Pages-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)
+&nbsp;
+![Firebase](https://img.shields.io/badge/Firebase-DD2C00?style=for-the-badge&logo=firebase&logoColor=white)
+
+<br>
 
 ---
 
-## Contents
+**[Live App](https://orthodox-korea-calendar.pages.dev)** &nbsp;&bull;&nbsp; **[Report a Bug](https://github.com/CyberSystema/orthodox-korea-calendar/issues)**
 
-- [Overview](#overview)
-- [Highlights](#highlights)
+---
+
+</div>
+
+<br>
+
+## Table of Contents
+
+<details>
+<summary>Click to expand</summary>
+
+- [About](#about)
+- [Features](#features)
+  - [Calendar Experience](#-calendar-experience)
+  - [Bilingual UX](#-bilingual-ux)
+  - [Parish Event Management](#-parish-event-management)
+  - [Push Notifications](#-push-notifications)
+  - [Embeddable Views](#-embeddable-views)
 - [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Scripts](#scripts)
-- [Cloudflare Deployment](#cloudflare-deployment)
-- [Environment Variables](#environment-variables)
-- [OneSignal Setup](#onesignal-setup)
-- [URL Parameters](#url-parameters)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Scripts](#scripts)
+- [Deployment](#deployment)
+  - [Cloudflare Pages](#cloudflare-pages)
+  - [Environment Variables](#environment-variables)
+- [URL Parameters & Deep Linking](#url-parameters--deep-linking)
 - [Events API](#events-api)
-- [Data Model](#data-model)
+- [Push Notification Setup](#push-notification-setup)
+  - [Firebase Cloud Messaging](#firebase-cloud-messaging)
+  - [OneSignal](#onesignal)
+- [Data Sources](#data-sources)
+  - [Liturgical Data](#liturgical-data-static)
+  - [Parish Events](#parish-events-dynamic)
 - [Project Structure](#project-structure)
 - [Embedding Examples](#embedding-examples)
 - [Adding a New Liturgical Year](#adding-a-new-liturgical-year)
 - [License](#license)
 
----
+</details>
 
-## Overview
-
-Orthodox Korea Calendar is a production-ready web app that combines liturgical calendar data with parish event management and web push notifications.
-
-It supports:
-
-- English and Korean UI in one build
-- Full calendar and compact today-widget views
-- Passcode-protected staff mode for parish events
-- OneSignal notifications with audience targeting
+<br>
 
 ---
 
-## Highlights
+## About
 
-### Calendar Experience
+**Orthodox Korea Calendar** is a production-ready web application that serves as a comprehensive digital liturgical resource for the Orthodox Metropolis of Korea. It combines static ecclesiastical calendar data&mdash;readings, celebrations, fasting periods&mdash;with dynamic parish event management, staff administration, and web push notifications, all wrapped in a Byzantine manuscript-inspired design.
 
-- Monthly grid with modal day details
-- Infinite year navigation for available datasets
-- Reading and celebration details per day
-- Fasting and liturgical indicators
-- Deep-link support to specific events
+The app ships as a single build that supports both English and Korean, with the ability to lock language via URL for targeted embedding.
 
-### Bilingual UX
+<br>
 
-- Language toggle in unlocked mode
-- URL language lock (`en`, `ko`, `kr`)
-- Localized date/weekday/month formatting
-- Bilingual parish event content with fallback rendering
+---
 
-### Parish Events (Staff)
+## Features
 
-- Shared passcode staff access
-- Create, edit, delete events
-- Recurrence support: none, daily, weekly, monthly, yearly
-- Bilingual event fields:
-  - `titleEn`, `titleKo`
-  - `descriptionEn`, `descriptionKo`
-- Validation: at least one title is required (English or Korean)
+### &#128197; Calendar Experience
 
-### Notifications (OneSignal)
+- **Monthly grid view** with infinite year navigation and modal day details
+- **Liturgical indicators** for fasting, cheese week, fish allowed, Presanctified Liturgy, St. Basil Liturgy, and Divine Liturgy
+- **High-rank celebration highlights** with visual distinction
+- **Reading lists** and celebration details per day
+- **Deep-link support** to open specific events via shareable URLs
+- **"Go to Today"** quick-jump when navigating away from the current month
+- **Byzantine splash screen** on initial load with animated Orthodox cross
 
-When `notify` is enabled on event creation:
+### &#127760; Bilingual UX
 
-1. Immediate push is sent
-2. If event is more than one day away, reminder is scheduled for 9:00 AM KST on the previous day
+- Full **English** and **Korean** interface in a single build
+- **Language toggle** in the header (can be locked via URL)
+- Localized dates, weekdays, months, and all UI strings
+- **70+ translation keys** covering the entire interface
+- Bilingual event content with **automatic fallback** (if one language is missing, the other is shown)
 
-Audience options:
+### &#9997; Parish Event Management
 
-- All subscribers
-- English only
-- Korean only
+- **Passcode-protected staff access** (shared admin passcode)
+- **Full CRUD** &mdash; create, edit, and delete parish events
+- **Bilingual event fields**: separate English and Korean titles and descriptions
+- **Recurrence support**: daily, weekly, or monthly with configurable interval and end date
+- **Validation**: at least one title (English or Korean) is required
+- **Rate-limited login**: 20 attempts per IP per 10-minute window
 
-Current targeting strategy:
+### &#128276; Push Notifications
 
-- `all`: OneSignal included segments
-- `english`: OneSignal filter `language=en` (tag)
-- `korean`: OneSignal filter `language=ko` (tag)
+- **Dual system**: Firebase Cloud Messaging (frontend) + OneSignal (backend dispatch)
+- **Immediate notification** on event creation when enabled by admin
+- **Scheduled reminders** at 9:00 AM KST on the day before distant events
+- **Audience targeting**: all subscribers, English-only, or Korean-only
+- **Permission recovery**: auto-resubscribe if browser data is cleared
+- **Smart refresh**: token refresh on focus, online events, visibility change, and 30-minute intervals
+
+### &#128187; Embeddable Views
+
+- **Full calendar view** &mdash; the default experience
+- **Compact today widget** (`?view=today`) &mdash; a standalone card for embedding in other websites
+- **Language-locked embeds** (`?lang=ko`) for targeted audiences
+- Cross-origin iframe support with permissive CSP headers
+
+<br>
 
 ---
 
 ## Architecture
 
-```text
-Svelte App (client)
-  -> Cloudflare Pages Function (/api/events)
-  -> Cloudflare KV (events storage)
-  -> OneSignal REST API (message delivery)
+```
+                          +---------------------+
+                          |   Svelte 5 Client   |
+                          |  (Byzantine Design) |
+                          +----------+----------+
+                                     |
+                    +----------------+----------------+
+                    |                                 |
+          +---------v----------+          +----------v-----------+
+          |  Static JSON Data  |          |  Cloudflare Pages    |
+          |  /public/data/     |          |  Functions (/api/)   |
+          |  (Liturgical Cal.) |          +----------+-----------+
+          +--------------------+                     |
+                                        +------------+------------+
+                                        |                         |
+                                +-------v-------+        +--------v--------+
+                                | Cloudflare KV |        | OneSignal REST  |
+                                | (Events Store)|        | (Push Delivery) |
+                                +---------------+        +-----------------+
 ```
 
-Data split:
+| Layer | Technology | Purpose |
+|:------|:-----------|:--------|
+| **Frontend** | Svelte 5 + TypeScript | Reactive UI with runes-based state |
+| **Styling** | Custom CSS design system | Byzantine manuscript aesthetic |
+| **Build** | Vite 7 | Dev server, HMR, production bundling |
+| **Backend** | Cloudflare Pages Functions | Serverless API for event CRUD |
+| **Database** | Cloudflare KV | Key-value storage for parish events |
+| **Push** | Firebase FCM + OneSignal | Token management + notification dispatch |
+| **Hosting** | Cloudflare Pages | Global CDN with edge functions |
 
-- Liturgical datasets: static JSON files in `public/data`
-- Parish events: dynamic data in Cloudflare KV
+<br>
 
 ---
 
-## Quick Start
+## Tech Stack
+
+| Category | Technologies |
+|:---------|:------------|
+| **Framework** | Svelte 5 (Runes: `$state`, `$derived`, `$effect`, `$props`) |
+| **Language** | TypeScript 5.8 |
+| **Bundler** | Vite 7 |
+| **Styling** | Custom Byzantine design system (EB Garamond + Outfit fonts, wine/gold/parchment palette) |
+| **State** | Svelte stores with cursor-based sync engine |
+| **Backend** | Cloudflare Pages Functions (serverless) |
+| **Storage** | Cloudflare KV |
+| **Notifications** | Firebase Cloud Messaging + OneSignal REST API |
+| **Deployment** | Cloudflare Pages |
+| **License** | AGPL-3.0 |
+
+<br>
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** &ge; 18
+- **npm** &ge; 9
+
+### Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/CyberSystema/orthodox-korea-calendar.git
+
+# Navigate to the project
 cd orthodox-korea-calendar
+
+# Install dependencies
 npm install
+
+# Start the dev server
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+The app will be available at **http://localhost:5173**.
+
+### Scripts
+
+| Command | Description |
+|:--------|:------------|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Production build to `./dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run check` | Run Svelte and TypeScript type checks |
+
+<br>
 
 ---
 
-## Scripts
+## Deployment
 
-```bash
-npm run dev
-npm run build
-npm run preview
-npm run check
+### Cloudflare Pages
+
+| Setting | Value |
+|:--------|:------|
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Framework preset | None |
+
+Static behavior is configured via:
+- `public/_headers` &mdash; cache control and CSP (allows iframe embedding)
+- `public/_redirects` &mdash; SPA fallback (`/* -> /index.html`)
+
+### Environment Variables
+
+Set these in the Cloudflare Pages dashboard (both Production and Preview):
+
+| Variable | Scope | Description |
+|:---------|:------|:------------|
+| `ADMIN_PASSCODE` | Server | Shared staff access passcode |
+| `ONESIGNAL_APP_ID` | Server | OneSignal app ID (backend sends) |
+| `ONESIGNAL_API_KEY` | Server | OneSignal REST API key (secret&mdash;never expose to client) |
+| `VITE_ONESIGNAL_APP_ID` | Public | OneSignal app ID (frontend SDK init&mdash;must match `ONESIGNAL_APP_ID`) |
+| `VITE_FIREBASE_API_KEY` | Public | Firebase API key |
+| `VITE_FIREBASE_PROJECT_ID` | Public | Firebase project ID |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Public | Firebase Cloud Messaging sender ID |
+| `VITE_FIREBASE_VAPID_KEY` | Public | FCM VAPID public key |
+| `VITE_BACKEND_BASE_URL` | Public | Backend API base URL (defaults to production) |
+
+> **Security note**: Variables prefixed with `VITE_` are embedded in the client bundle. Never put secrets in `VITE_` variables.
+
+<br>
+
+---
+
+## URL Parameters & Deep Linking
+
+| Parameter | Values | Default | Description |
+|:----------|:-------|:--------|:------------|
+| `view` | `calendar`, `today` | `calendar` | Full calendar or compact today widget |
+| `lang` | `en`, `ko`, `kr` | *none* | Locks language and hides the toggle |
+| `event` | *event ID* | *none* | Deep-links to a specific event modal |
+| `date` | `YYYY-MM-DD` | *none* | Date hint for resolving deep-linked events |
+
+**Examples:**
+
+```
+# Korean-locked calendar
+https://orthodox-korea-calendar.pages.dev/?lang=ko
+
+# Deep-link to a specific event
+https://orthodox-korea-calendar.pages.dev/?event=abc123&date=2026-04-19
+
+# Embeddable today widget in English
+https://orthodox-korea-calendar.pages.dev/?view=today&lang=en
 ```
 
-`npm run check` runs Svelte and TypeScript checks.
-
----
-
-## Cloudflare Deployment
-
-Use these Pages settings:
-
-| Setting          | Value           |
-| ---------------- | --------------- |
-| Build command    | `npm run build` |
-| Output directory | `dist`          |
-| Framework preset | `None`          |
-
-Static behavior files:
-
-- `public/_headers`
-- `public/_redirects`
-
----
-
-## Environment Variables
-
-Set these in Cloudflare Pages (Production and Preview as needed):
-
-| Variable                | Purpose                                     |
-| ----------------------- | ------------------------------------------- |
-| `ADMIN_PASSCODE`        | Staff access passcode                       |
-| `ONESIGNAL_APP_ID`      | OneSignal app ID used by backend sends      |
-| `ONESIGNAL_API_KEY`     | OneSignal REST API key (server-only secret) |
-| `VITE_ONESIGNAL_APP_ID` | OneSignal app ID used by frontend SDK init  |
-
-Important:
-
-- `VITE_ONESIGNAL_APP_ID` and `ONESIGNAL_APP_ID` must match.
-- Never expose `ONESIGNAL_API_KEY` in client code.
-
----
-
-## OneSignal Setup
-
-### 1) Create and Configure App
-
-- Create one OneSignal app for your web origin.
-- Ensure Site URL exactly matches deployed origin (`https`, host, subdomain).
-
-### 2) Service Worker
-
-This project initializes OneSignal with:
-
-- `serviceWorkerPath: /OneSignalSDKWorker.js`
-- `serviceWorkerParam.scope: /`
-
-Required worker file content:
-
-```js
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
-```
-
-Worker requirements:
-
-- HTTPS
-- Same origin
-- Valid JavaScript MIME type
-- No redirects on worker URL
-
-### 3) Subscription Recovery
-
-Client setup includes:
-
-- `autoResubscribe: true`
-- Permission-granted recovery flow after cache/site-data clears
-
-### 4) Language Tags
-
-Client tags subscribers as:
-
-- `language=en`
-- `language=ko`
-
-Backend uses these tags for English/Korean targeting filters.
-
----
-
-## URL Parameters
-
-| Parameter | Values              | Default    | Description                              |
-| --------- | ------------------- | ---------- | ---------------------------------------- |
-| `view`    | `calendar`, `today` | `calendar` | Full calendar or compact today widget    |
-| `lang`    | `en`, `ko`, `kr`    | none       | Locks language when provided             |
-| `event`   | event ID            | none       | Deep-link event open                     |
-| `date`    | `YYYY-MM-DD`        | none       | Event date hint for deep-link resolution |
-
-Language behavior:
-
-- `lang=en` -> English
-- `lang=ko` or `lang=kr` -> Korean
+<br>
 
 ---
 
 ## Events API
 
-Implemented in `functions/api/events.ts`.
+All endpoints are served from `functions/api/events.ts` via Cloudflare Pages Functions.
 
-| Method   | Route                   | Purpose                          |
-| -------- | ----------------------- | -------------------------------- |
-| `GET`    | `/api/events?year=YYYY` | Fetch events for year            |
-| `PATCH`  | `/api/events`           | Verify admin passcode            |
-| `POST`   | `/api/events`           | Create event, optional push send |
-| `PUT`    | `/api/events`           | Update event                     |
-| `DELETE` | `/api/events`           | Delete event                     |
+### Public Endpoints
 
-All write operations require passcode.
+| Method | Route | Description |
+|:-------|:------|:------------|
+| `GET` | `/api/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | List events in a date range |
+| `GET` | `/api/health` | Service health check |
+| `GET` | `/api/client-config` | Firebase configuration (public key) |
+| `GET` | `/api/sync?cursor=N` | Cursor-based incremental event sync |
+
+### Authentication
+
+| Method | Route | Description |
+|:-------|:------|:------------|
+| `POST` | `/api/staff/login` | Login with passcode, receive bearer token |
+| `GET` | `/api/admin/me` | Verify current session token |
+| `POST` | `/api/admin/logout` | Revoke session token |
+
+### Admin Endpoints (Bearer Token Required)
+
+| Method | Route | Description |
+|:-------|:------|:------------|
+| `POST` | `/api/events` | Create event (optionally send push notification) |
+| `PUT` | `/api/events/{id}` | Update event |
+| `DELETE` | `/api/events/{id}` | Delete event |
+| `POST` | `/api/notify` | Send push notification manually |
+
+### Subscriptions
+
+| Method | Route | Description |
+|:-------|:------|:------------|
+| `POST` | `/api/subscriptions` | Register FCM token with language tag |
+| `DELETE` | `/api/subscriptions/{token}` | Unregister FCM token |
+
+<br>
 
 ---
 
-## Data Model
+## Push Notification Setup
 
-### Liturgical Data
+### Firebase Cloud Messaging
 
-Static files in `public/data`:
+Firebase handles **client-side token management** and **foreground message display**.
 
-- `YYYY_en.json`
-- `YYYY_kr.json`
+1. Create a Firebase project and enable Cloud Messaging
+2. Set `VITE_FIREBASE_*` environment variables
+3. The service worker at `public/firebase-messaging-sw.js` handles background messages
+4. Token refresh runs automatically on focus, online events, visibility change, and every 30 minutes
 
-### Parish Events (KV)
+### OneSignal
 
-Stored in Cloudflare KV with:
+OneSignal handles **backend dispatch** and **audience targeting**.
 
-- Year-scoped event lists
-- Recurring event pool
-- Event-to-year index key for lookup optimization
+1. Create a OneSignal app matching your deployed web origin (must be `https`)
+2. Set `ONESIGNAL_APP_ID` and `ONESIGNAL_API_KEY` in Cloudflare env
+3. The service worker at `public/OneSignalSDKWorker.js` must be served from the same origin
+
+**Language Tags:**
+
+Subscribers are tagged with `language=en` or `language=ko`. The admin can target notifications to:
+
+| Audience | OneSignal Strategy |
+|:---------|:------------------|
+| All subscribers | Included segments |
+| English only | Filter: `language = en` |
+| Korean only | Filter: `language = ko` |
+
+**Notification Timing:**
+
+- **Immediate**: sent on event creation when `notify` is enabled
+- **Scheduled reminder**: 9:00 AM KST on the day before the event (if the event is more than 1 day away)
+
+<br>
+
+---
+
+## Data Sources
+
+### Liturgical Data (Static)
+
+Static JSON files in `public/data/`:
+
+```
+public/data/2026_en.json    # English liturgical data
+public/data/2026_kr.json    # Korean liturgical data
+```
+
+Each file contains an array of day entries with:
+
+| Field | Type | Description |
+|:------|:-----|:------------|
+| `date` | `string` | ISO date (`YYYY-MM-DD`) |
+| `fast` | `boolean` | Fasting day |
+| `cheese` | `boolean` | Cheese week |
+| `fish` | `boolean` | Fish allowed |
+| `pres` | `boolean` | Presanctified Liturgy |
+| `saint_basil` | `boolean` | St. Basil Liturgy |
+| `dl` | `boolean` | Divine Liturgy |
+| `readings` | `string[]` | Scripture readings |
+| `content` | `array` | Celebrations with title, rank, tone, readings |
+
+**Fetch strategy:** tries remote (GitHub main branch) first, falls back to local `/data/`, returns `null` if unavailable.
+
+### Parish Events (Dynamic)
+
+Stored in **Cloudflare KV** under the `EVENTS` namespace:
+
+| Key Pattern | Value |
+|:------------|:------|
+| `event:{id}` | Single event record (JSON) |
+| `year:{YYYY}` | Array of event IDs for that year |
+| `events:recurring` | Pool of all recurring event templates |
+| `event-to-year:{id}` | Year index for fast lookups |
+
+Events support bilingual fields (`titleEn`, `titleKo`, `descriptionEn`, `descriptionKo`) and optional recurrence (`frequency`, `interval`, `until`).
+
+<br>
 
 ---
 
 ## Project Structure
 
-```text
-orthodox-korea-calendar/
-├── functions/
-│   └── api/
-│       └── events.ts
-├── public/
-│   ├── _headers
-│   ├── _redirects
-│   ├── OneSignalSDKWorker.js
-│   └── data/
-├── src/
-│   ├── App.svelte
-│   ├── app.css
-│   ├── main.ts
-│   ├── components/
-│   │   ├── AdminPanel.svelte
-│   │   ├── DayCell.svelte
-│   │   ├── DayPanel.svelte
-│   │   ├── EventPanel.svelte
-│   │   ├── Modal.svelte
-│   │   ├── MonthGrid.svelte
-│   │   └── TodayWidget.svelte
-│   └── lib/
-│       ├── api.ts
-│       ├── date.ts
-│       ├── eventText.ts
-│       ├── events.ts
-│       ├── i18n.ts
-│       ├── onesignal.ts
-│       ├── params.ts
-│       ├── store.ts
-│       └── types.d.ts
-├── OneSignalSDKWorker.js
-├── wrangler.toml
-├── package.json
-└── README.md
 ```
+orthodox-korea-calendar/
+│
+├── functions/                        # Cloudflare Pages Functions (backend)
+│   ├── api/
+│   │   └── events.ts                # API handler: CRUD, auth, sync, push
+│   └── types.d.ts                   # KV & Pages function type definitions
+│
+├── public/                           # Static assets (served as-is)
+│   ├── data/
+│   │   ├── 2026_en.json             # English liturgical data
+│   │   └── 2026_kr.json             # Korean liturgical data
+│   ├── firebase-messaging-sw.js     # FCM service worker
+│   ├── OneSignalSDKWorker.js        # OneSignal service worker
+│   ├── _headers                     # Cloudflare cache & CSP headers
+│   ├── _redirects                   # SPA fallback redirect rules
+│   └── *.jpeg                       # Liturgical indicator icons
+│
+├── src/                              # Frontend application
+│   ├── App.svelte                   # Root component
+│   ├── main.ts                      # Entry point (mount + FCM init)
+│   ├── app.css                      # Byzantine design system
+│   │
+│   ├── components/
+│   │   ├── AdminPanel.svelte        # Staff login & event form
+│   │   ├── ByzantineSplashScreen.svelte  # Animated loading screen
+│   │   ├── DayCell.svelte           # Individual calendar day cell
+│   │   ├── DayPanel.svelte          # Day detail modal
+│   │   ├── EventPanel.svelte        # Event detail + calendar export
+│   │   ├── Modal.svelte             # Reusable modal wrapper
+│   │   ├── MonthGrid.svelte         # Monthly calendar grid
+│   │   └── TodayWidget.svelte       # Compact embeddable widget
+│   │
+│   └── lib/
+│       ├── api.ts                   # Liturgical JSON fetch logic
+│       ├── apiClient.ts             # Backend API client singleton
+│       ├── backend.ts               # Backend URL resolution
+│       ├── date.ts                  # Calendar math utilities
+│       ├── eventText.ts             # Event text localization helpers
+│       ├── events.ts                # Event API wrappers & sync logic
+│       ├── fcm.ts                   # Firebase Cloud Messaging setup
+│       ├── i18n.ts                  # Translation system (en/kr, 70+ keys)
+│       ├── onesignal.ts             # OneSignal integration
+│       ├── params.ts                # URL parameter parsing
+│       ├── store.ts                 # Svelte stores (state management)
+│       ├── types.d.ts               # Shared TypeScript interfaces
+│       └── sdk/
+│           ├── client.ts            # OrthodoxCalendarApiClient class
+│           ├── contracts.ts         # API request/response types
+│           ├── index.ts             # SDK barrel export
+│           └── stores.ts            # Token & cursor persistence
+│
+├── index.html                       # HTML entry point
+├── vite.config.ts                   # Vite build configuration
+├── svelte.config.js                 # Svelte compiler options
+├── wrangler.toml                    # Cloudflare Pages + KV config
+├── tsconfig.json                    # Root TypeScript config
+├── tsconfig.app.json                # App-specific TS config
+├── tsconfig.node.json               # Node/build TS config
+├── package.json                     # Dependencies & scripts
+└── LICENSE                          # AGPL-3.0
+```
+
+<br>
 
 ---
 
@@ -315,44 +486,80 @@ orthodox-korea-calendar/
 ### Full Calendar
 
 ```html
-<iframe src="https://your-site.pages.dev/" width="100%" height="900" style="border:none;"></iframe>
-```
-
-### Korean Locked Calendar
-
-```html
 <iframe
-  src="https://your-site.pages.dev/?lang=ko"
+  src="https://orthodox-korea-calendar.pages.dev/"
   width="100%"
   height="900"
-  style="border:none;"
+  style="border: none; border-radius: 8px;"
+  title="Orthodox Korea Calendar"
 ></iframe>
 ```
 
-### Today Widget
+### Korean-Locked Calendar
 
 ```html
 <iframe
-  src="https://your-site.pages.dev/?view=today&lang=en"
-  width="480"
-  height="600"
-  style="border:none;"
+  src="https://orthodox-korea-calendar.pages.dev/?lang=ko"
+  width="100%"
+  height="900"
+  style="border: none; border-radius: 8px;"
+  title="Orthodox Korea Calendar (Korean)"
 ></iframe>
 ```
+
+### English Today Widget
+
+```html
+<iframe
+  src="https://orthodox-korea-calendar.pages.dev/?view=today&lang=en"
+  width="480"
+  height="600"
+  style="border: none; border-radius: 8px;"
+  title="Today's Liturgical Info"
+></iframe>
+```
+
+### Deep-Link to Event
+
+```html
+<a href="https://orthodox-korea-calendar.pages.dev/?event=EVENT_ID&date=2026-04-19">
+  View Event Details
+</a>
+```
+
+<br>
 
 ---
 
 ## Adding a New Liturgical Year
 
-Add:
+To add data for a new year, place two JSON files in `public/data/`:
 
-- `public/data/YYYY_en.json`
-- `public/data/YYYY_kr.json`
+```
+public/data/YYYY_en.json
+public/data/YYYY_kr.json
+```
 
-No code changes are needed if the schema is unchanged.
+The app will automatically detect and load the new year&mdash;no code changes needed as long as the file schema matches the existing format.
+
+<br>
 
 ---
 
 ## License
 
-AGPL-3.0. See `LICENSE`.
+This project is licensed under the **GNU Affero General Public License v3.0**.
+
+See [LICENSE](LICENSE) for the full text.
+
+<br>
+
+<div align="center">
+
+---
+
+*Built with prayer and code for the Orthodox Metropolis of Korea*
+
+&#9766;
+
+</div>
