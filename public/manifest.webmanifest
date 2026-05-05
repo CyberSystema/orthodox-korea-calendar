@@ -1,0 +1,34 @@
+{
+  "name": "Orthodox Korea Calendar",
+  "short_name": "OKN Calendar",
+  "description": "The official liturgical calendar of the Orthodox Metropolis of Korea and Exarchate of Japan — feasts, fasts, and commemorations in English and Korean.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#3A0A0A",
+  "theme_color": "#3A0A0A",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "lifestyle", "education"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

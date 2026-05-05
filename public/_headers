@@ -1,7 +1,29 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
 
-# Allow iframe embedding from any origin
+# Allow iframe embedding from any origin (TodayWidget is intentionally embeddable)
 /*.html
   Content-Security-Policy: frame-ancestors *
+
+# Service worker scripts must be served from root and never cached aggressively
+/firebase-messaging-sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+/OneSignalSDKWorker.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+# Cross-origin manifest must be JSON
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+# .well-known files
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+/.well-known/assetlinks.json
+  Content-Type: application/json
