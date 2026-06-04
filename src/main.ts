@@ -2,10 +2,14 @@ import { mount } from 'svelte';
 import './app.css';
 import App from './App.svelte';
 import { initFcm } from './lib/fcm';
+import { initEmbedAutoResize } from './lib/embed';
 
 const app = mount(App, {
   target: document.getElementById('app')!,
 });
+
+// Report content height to a parent page when embedded as an iframe.
+initEmbedAutoResize();
 
 // Detect language from URL param first, then fall back to browser language.
 // Used to tag push subscriptions for localized delivery.

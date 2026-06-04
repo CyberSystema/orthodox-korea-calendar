@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
   import MonthGrid from './components/MonthGrid.svelte';
   import DayPanel from './components/DayPanel.svelte';
   import EventPanel from './components/EventPanel.svelte';
@@ -53,6 +54,7 @@
   let pendingEventId = $state(params.eventId);
   let pendingEventDate = $state(params.eventDate);
   let loadedEventYears = $state<Set<number>>(new Set());
+  let legendOpen = $state(true);
 
   if (params.lang) {
     language.set(params.lang);
@@ -557,18 +559,46 @@
           <button class="go-today" onclick={goToToday}>{t.today} ↩</button>
         {/if}
 
-        <!-- Legend -->
+        <!-- Legend (collapsible) -->
         {#if !isYearMissing}
-          <section class="legend">
-            <div class="ornament">{t.legend}</div>
-            <div class="legend-grid">
-              {#each [['/fast.jpeg', t.fast], ['/cheese.jpeg', t.cheese], ['/fish.jpeg', t.fish], ['/pres.jpeg', t.pres], ['/bas_lit.jpeg', t.basil], ['/div_lit.jpeg', t.dl]] as [src, label]}
-                <div class="legend-item">
-                  <img {src} alt={label} />
-                  <span>{label}</span>
-                </div>
-              {/each}
-            </div>
+          <section class="legend" class:collapsed={!legendOpen}>
+            <button
+              type="button"
+              class="ornament legend-toggle"
+              aria-expanded={legendOpen}
+              aria-controls="legend-grid"
+              title={legendOpen
+                ? $language === 'en'
+                  ? 'Hide legend'
+                  : '범례 숨기기'
+                : $language === 'en'
+                  ? 'Show legend'
+                  : '범례 보기'}
+              onclick={() => (legendOpen = !legendOpen)}
+            >
+              <span class="legend-toggle-label">{t.legend}</span>
+              <svg
+                class="legend-chevron"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg
+              >
+            </button>
+            {#if legendOpen}
+              <div id="legend-grid" class="legend-grid" transition:slide={{ duration: 220 }}>
+                {#each [['/fast.jpeg', t.fast], ['/cheese.jpeg', t.cheese], ['/fish.jpeg', t.fish], ['/pres.jpeg', t.pres], ['/bas_lit.jpeg', t.basil], ['/div_lit.jpeg', t.dl]] as [src, label]}
+                  <div class="legend-item">
+                    <img {src} alt={label} />
+                    <span>{label}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </section>
         {/if}
 
@@ -960,6 +990,31 @@
     border: 1px solid var(--line-light);
     border-radius: var(--r-lg);
     box-shadow: var(--shadow-warm);
+  }
+  .legend.collapsed {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  .legend-toggle {
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--gold);
+  }
+  .legend-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .legend-chevron {
+    flex-shrink: 0;
+    color: var(--gold);
+    transition: transform 0.25s ease;
+  }
+  .legend:not(.collapsed) .legend-chevron {
+    transform: rotate(180deg);
   }
   .legend-grid {
     display: grid;

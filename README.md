@@ -128,6 +128,7 @@ The app ships as a single build that supports both English and Korean, with the 
 - **Compact today widget** (`?view=today`) &mdash; a standalone card for embedding in other websites
 - **Language-locked embeds** (`?lang=ko`) for targeted audiences
 - Cross-origin iframe support with permissive CSP headers
+- Content-aware iframe auto-resizing (posts its height to the host page; no inner scroll bars)
 
 <br>
 
@@ -483,6 +484,33 @@ orthodox-korea-calendar/
 
 ## Embedding Examples
 
+The embedded app is **content-aware**: it measures its own height and posts it to
+the host page so the iframe can grow and shrink to fit — no inner scroll bars.
+Add the small listener below **once** per page and use `scrolling="no"` on each
+iframe. The listener matches each message to its iframe by source window, so a
+single script handles any number of embeds (calendar, today widget, etc.).
+
+```html
+<script>
+  // Resize Orthodox Korea Calendar iframes to fit their content.
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'okc:resize') return;
+    var frames = document.getElementsByTagName('iframe');
+    for (var i = 0; i < frames.length; i++) {
+      if (frames[i].contentWindow === e.source) {
+        frames[i].style.height = e.data.height + 'px';
+        break;
+      }
+    }
+  });
+</script>
+```
+
+> The message shape is `{ type: 'okc:resize', height: <px>, view: 'calendar' | 'today' }`.
+> A host can also post `{ type: 'okc:request-size' }` to an iframe to force it to
+> re-report its height (useful after re-attaching the frame). The `height` value
+> still works as a sensible fallback for hosts that don't add the listener.
+
 ### Full Calendar
 
 ```html
@@ -490,7 +518,8 @@ orthodox-korea-calendar/
   src="https://orthodox-korea-calendar.pages.dev/"
   width="100%"
   height="900"
-  style="border: none; border-radius: 8px;"
+  scrolling="no"
+  style="border: none; border-radius: 8px; width: 100%; display: block;"
   title="Orthodox Korea Calendar"
 ></iframe>
 ```
@@ -502,7 +531,8 @@ orthodox-korea-calendar/
   src="https://orthodox-korea-calendar.pages.dev/?lang=ko"
   width="100%"
   height="900"
-  style="border: none; border-radius: 8px;"
+  scrolling="no"
+  style="border: none; border-radius: 8px; width: 100%; display: block;"
   title="Orthodox Korea Calendar (Korean)"
 ></iframe>
 ```
@@ -514,7 +544,8 @@ orthodox-korea-calendar/
   src="https://orthodox-korea-calendar.pages.dev/?view=today&lang=en"
   width="480"
   height="600"
-  style="border: none; border-radius: 8px;"
+  scrolling="no"
+  style="border: none; border-radius: 8px; display: block;"
   title="Today's Liturgical Info"
 ></iframe>
 ```
