@@ -19,7 +19,14 @@ let currentLang: 'en' | 'kr' = 'en';
 let cachedFirebaseConfig: FirebaseOptions | null = null;
 let cachedVapidKey = '';
 let tokenRefreshHooksInstalled = false;
-const APP_LINK_ORIGIN = 'https://orthodox-korea-calendar.pages.dev';
+const FALLBACK_APP_LINK_ORIGIN = 'https://orthodox-korea-calendar.pages.dev';
+
+function appLinkOrigin(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return FALLBACK_APP_LINK_ORIGIN;
+}
 
 const PUSH_BANNER_DISMISSED_KEY = 'okc_push_banner_dismissed';
 const PUSH_PERMISSION_PROMPTED_KEY = 'okc_push_permission_prompted';
@@ -217,7 +224,7 @@ function setupTokenRefreshHooks(): void {
 }
 
 function buildAppLink(pathAndQuery: string): string {
-  return new URL(pathAndQuery, APP_LINK_ORIGIN).toString();
+  return new URL(pathAndQuery, appLinkOrigin()).toString();
 }
 
 function normalizeNotificationUrl(url: string): string {
