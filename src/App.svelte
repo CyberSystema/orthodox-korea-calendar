@@ -614,10 +614,11 @@
 <style>
   /* ═══ WIDGET ═══ */
   .widget-wrap {
-    min-height: 100%;
+    min-height: 100vh;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
+    padding: 1rem;
   }
   .loader {
     text-align: center;
