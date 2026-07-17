@@ -119,6 +119,10 @@ export interface SyncResponse {
   hasMore: boolean;
   events: ApiEvent[];
   deletedIds: string[];
+  /** True when `events` is a full snapshot (returned on an initial sync or when the
+   *  cursor predates the change_log prune horizon). The webapp reloads authoritatively
+   *  via GET /events, so it safely merges either way. */
+  snapshot?: boolean;
 }
 
 export interface RegisterSubscriptionInput {
