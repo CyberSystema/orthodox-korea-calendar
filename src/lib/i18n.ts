@@ -66,6 +66,7 @@ export interface Translations {
   outlookCalendar: string;
   noDescription: string;
   sendNotification: string;
+  sendNotificationOnEdit: string;
   notificationTarget: string;
   notificationAll: string;
   notificationEnglish: string;
@@ -142,6 +143,7 @@ const en: Translations = {
   outlookCalendar: 'Outlook',
   noDescription: 'No description provided.',
   sendNotification: 'Send push notification',
+  sendNotificationOnEdit: 'Send a notification about this change',
   notificationTarget: 'Notify',
   notificationAll: 'All subscribers',
   notificationEnglish: 'English only',
@@ -218,6 +220,7 @@ const kr: Translations = {
   outlookCalendar: '아웃룩',
   noDescription: '설명이 없습니다.',
   sendNotification: '푸시 알림 보내기',
+  sendNotificationOnEdit: '이 변경 사항에 대한 알림 보내기',
   notificationTarget: '수신자',
   notificationAll: '모든 구독자',
   notificationEnglish: '영어 구독자만',

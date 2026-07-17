@@ -53,6 +53,9 @@
   let formRecurrenceInterval = $state(editingEvent?.recurrenceInterval ?? 1);
   // svelte-ignore state_referenced_locally
   let formRecurrenceUntil = $state(editingEvent?.recurrenceUntil ?? '');
+  // Re-notify choice, only for edits (new events notify automatically). Off by default
+  // so a minor edit stays silent; the editor opts in when the change is worth announcing.
+  let formNotify = $state(false);
   let formLoading = $state(false);
   let formError = $state('');
   let formNotice = $state('');
@@ -143,6 +146,18 @@
           allDay: formAllDay,
           recurrence: recurrencePayload(),
         });
+
+        if (formNotify) {
+          try {
+            await notifySubscribers({ eventId: editingEvent.id, target: 'all' });
+          } catch {
+            // The edit was saved; a notification failure must not read as a save failure.
+            formError = 'Change saved, but the notification could not be sent.';
+            formLoading = false;
+            await refreshEvents();
+            return;
+          }
+        }
       } else {
         const created = await createEvent({
           date: formDate,
@@ -292,6 +307,13 @@
         <label class="field">
           <span class="field-label">{t.recurrenceUntil}</span>
           <input type="date" class="field-input" bind:value={formRecurrenceUntil} />
+        </label>
+      {/if}
+
+      {#if editingEvent}
+        <label class="field-check">
+          <input type="checkbox" bind:checked={formNotify} />
+          <span>{t.sendNotificationOnEdit}</span>
         </label>
       {/if}
 
