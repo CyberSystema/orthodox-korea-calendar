@@ -162,7 +162,7 @@ export async function updateEvent(
 ): Promise<ParishEvent> {
   const payload: Record<string, unknown> = {};
   if (data.date !== undefined) payload.date = data.date;
-  if (data.type !== undefined) payload.type = data.type;
+  if (data.type !== undefined) payload.type = mapEventType(data.type);
   if (data.color !== undefined) payload.color = data.color;
   if (data.allDay !== undefined) payload.all_day = data.allDay;
   if (data.titleEn !== undefined) payload.title_en = data.titleEn;
