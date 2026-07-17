@@ -59,8 +59,17 @@ function rebuildEventsCache() {
 function applySyncChunk(chunk: { events: ParishEvent[]; deletedIds: string[] }) {
   allEventsById.update((current) => {
     const next = { ...current };
-    for (const id of chunk.deletedIds) {
-      delete next[id];
+    if (chunk.deletedIds.length > 0) {
+      // deletedIds carry the canonical PARENT id, but recurring events are stored
+      // under occurrence ids (`parent::date`). Remove by parent id so deleting a
+      // recurring series drops all of its occurrences, not just an exact-id match.
+      const deleted = new Set(chunk.deletedIds);
+      for (const [key, evt] of Object.entries(next)) {
+        const parentId = evt.parentEventId ?? key.split('::')[0];
+        if (deleted.has(key) || deleted.has(parentId)) {
+          delete next[key];
+        }
+      }
     }
     for (const evt of chunk.events) {
       next[evt.id] = evt;
