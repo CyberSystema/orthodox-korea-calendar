@@ -72,12 +72,15 @@ function buildEventUrl(data) {
 }
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'Orthodox Korea';
-  const clickUrl = buildEventUrl(payload.data || {});
+  // Web pushes are sent data-only (title/body live in `data`) so this handler renders
+  // exactly one notification; fall back to the notification block for safety.
+  const data = payload.data || {};
+  const title = data.title || payload.notification?.title || 'Orthodox Korea';
+  const clickUrl = buildEventUrl(data);
   const options = {
-    body: payload.notification?.body || '',
+    body: data.body || payload.notification?.body || '',
     data: {
-      ...(payload.data || {}),
+      ...data,
       clickUrl,
     },
   };
