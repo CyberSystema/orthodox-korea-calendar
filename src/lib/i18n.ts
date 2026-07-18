@@ -82,8 +82,15 @@ export interface Translations {
   announcementsError: string;
   announcementsRetry: string;
   announcementsViewEvent: string;
+  announcementsViewDetails: string;
   announcementsAudienceEn: string;
   announcementsAudienceKo: string;
+  announcementsBack: string;
+  announcementsLinkedEvent: string;
+  announcementsNotice: string;
+  announcementsDelete: string;
+  announcementsDeleteConfirm: string;
+  announcementsDeleteFailed: string;
 }
 
 const en: Translations = {
@@ -166,8 +173,15 @@ const en: Translations = {
   announcementsError: "Couldn't load announcements",
   announcementsRetry: 'Try again',
   announcementsViewEvent: 'View event',
+  announcementsViewDetails: 'View details',
   announcementsAudienceEn: 'English',
   announcementsAudienceKo: 'Korean',
+  announcementsBack: 'Back',
+  announcementsLinkedEvent: 'Linked event',
+  announcementsNotice: 'Notice',
+  announcementsDelete: 'Delete',
+  announcementsDeleteConfirm: 'Remove this announcement for everyone? This cannot be undone.',
+  announcementsDeleteFailed: 'Could not delete the announcement.',
 };
 
 const kr: Translations = {
@@ -250,8 +264,15 @@ const kr: Translations = {
   announcementsError: '공지사항을 불러오지 못했습니다',
   announcementsRetry: '다시 시도',
   announcementsViewEvent: '행사 보기',
+  announcementsViewDetails: '자세히 보기',
   announcementsAudienceEn: '영어',
   announcementsAudienceKo: '한국어',
+  announcementsBack: '뒤로',
+  announcementsLinkedEvent: '연결된 행사',
+  announcementsNotice: '공지',
+  announcementsDelete: '삭제',
+  announcementsDeleteConfirm: '이 공지를 모두에게서 삭제하시겠습니까? 되돌릴 수 없습니다.',
+  announcementsDeleteFailed: '공지를 삭제하지 못했습니다.',
 };
 
 export function getTranslations(lang: Language): Translations {

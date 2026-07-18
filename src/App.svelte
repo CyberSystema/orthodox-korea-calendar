@@ -587,7 +587,12 @@
 
         <!-- Announcements Modal (available regardless of year availability) -->
         <Modal open={showAnnouncements} onClose={() => (showAnnouncements = false)}>
-          <AnnouncementsPanel {t} lang={$language} onViewEvent={handleViewAnnouncementEvent} />
+          <AnnouncementsPanel
+            {t}
+            lang={$language}
+            onViewEvent={handleViewAnnouncementEvent}
+            isAdmin={$isAdmin}
+          />
         </Modal>
 
         <!-- Go to Today -->

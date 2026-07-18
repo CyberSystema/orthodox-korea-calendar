@@ -7,12 +7,15 @@ import type {
   CreateOrUpdateEventInput,
   DeleteEventResponse,
   DeleteSubscriptionResponse,
+  DeleteAnnouncementResponse,
   HealthResponse,
   ListAnnouncementsParams,
   ListAnnouncementsResponse,
   ListEventsParams,
   ListEventsResponse,
   LoginRequest,
+  PurgeInput,
+  PurgeResult,
   LoginResponse,
   LogoutResponse,
   StaffLoginRequest,
@@ -362,5 +365,22 @@ export class OrthodoxCalendarApiClient {
       offset: params.offset,
     });
     return this.request<ListAnnouncementsResponse>('GET', `/announcements${query}`);
+  }
+
+  async deleteAnnouncement(id: number): Promise<DeleteAnnouncementResponse> {
+    return this.request<DeleteAnnouncementResponse>(
+      'DELETE',
+      `/announcements/${encodeURIComponent(String(id))}`,
+      { auth: true },
+    );
+  }
+
+  // ─── Maintenance (admin) ───────────────────────────────────────────────────
+
+  async purgeData(input: PurgeInput): Promise<PurgeResult> {
+    return this.request<PurgeResult>('POST', '/admin/maintenance/purge', {
+      body: input,
+      auth: true,
+    });
   }
 }
