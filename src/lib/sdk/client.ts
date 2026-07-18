@@ -7,8 +7,11 @@ import type {
   CreateOrUpdateEventInput,
   DeleteEventResponse,
   DeleteSubscriptionResponse,
+  AdminAnnouncementLogResponse,
   DeleteAnnouncementResponse,
+  HardDeleteAnnouncementResponse,
   HealthResponse,
+  ListAnnouncementLogParams,
   ListAnnouncementsParams,
   ListAnnouncementsResponse,
   ListEventsParams,
@@ -16,6 +19,7 @@ import type {
   LoginRequest,
   PurgeInput,
   PurgeResult,
+  RestoreAnnouncementResponse,
   LoginResponse,
   LogoutResponse,
   StaffLoginRequest,
@@ -382,5 +386,34 @@ export class OrthodoxCalendarApiClient {
       body: input,
       auth: true,
     });
+  }
+
+  // ─── Announcement log (owner console; unfiltered) ──────────────────────────
+
+  async listAnnouncementLog(params: ListAnnouncementLogParams = {}): Promise<AdminAnnouncementLogResponse> {
+    const query = OrthodoxCalendarApiClient.toQuery({
+      limit: params.limit,
+      offset: params.offset,
+      filter: params.filter,
+    });
+    return this.request<AdminAnnouncementLogResponse>('GET', `/admin/announcements/log${query}`, {
+      auth: true,
+    });
+  }
+
+  async restoreAnnouncement(id: number): Promise<RestoreAnnouncementResponse> {
+    return this.request<RestoreAnnouncementResponse>(
+      'POST',
+      `/admin/announcements/${encodeURIComponent(String(id))}/restore`,
+      { auth: true },
+    );
+  }
+
+  async hardDeleteAnnouncement(id: number): Promise<HardDeleteAnnouncementResponse> {
+    return this.request<HardDeleteAnnouncementResponse>(
+      'DELETE',
+      `/admin/announcements/${encodeURIComponent(String(id))}/hard`,
+      { auth: true },
+    );
   }
 }
