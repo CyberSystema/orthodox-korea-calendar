@@ -76,6 +76,14 @@ export interface Translations {
   cancel: string;
   noEvents: string;
   parishEvents: string;
+  // Announcements feed
+  announcements: string;
+  announcementsEmpty: string;
+  announcementsError: string;
+  announcementsRetry: string;
+  announcementsViewEvent: string;
+  announcementsAudienceEn: string;
+  announcementsAudienceKo: string;
 }
 
 const en: Translations = {
@@ -153,6 +161,13 @@ const en: Translations = {
   cancel: 'Cancel',
   noEvents: 'No parish events',
   parishEvents: 'Parish Events',
+  announcements: 'Announcements',
+  announcementsEmpty: 'No announcements yet',
+  announcementsError: "Couldn't load announcements",
+  announcementsRetry: 'Try again',
+  announcementsViewEvent: 'View event',
+  announcementsAudienceEn: 'English',
+  announcementsAudienceKo: 'Korean',
 };
 
 const kr: Translations = {
@@ -230,6 +245,13 @@ const kr: Translations = {
   cancel: '취소',
   noEvents: '교구 행사 없음',
   parishEvents: '교구 행사',
+  announcements: '공지사항',
+  announcementsEmpty: '아직 공지사항이 없습니다',
+  announcementsError: '공지사항을 불러오지 못했습니다',
+  announcementsRetry: '다시 시도',
+  announcementsViewEvent: '행사 보기',
+  announcementsAudienceEn: '영어',
+  announcementsAudienceKo: '한국어',
 };
 
 export function getTranslations(lang: Language): Translations {

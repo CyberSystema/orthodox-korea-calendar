@@ -7,6 +7,7 @@
   import TodayWidget from './components/TodayWidget.svelte';
   import Modal from './components/Modal.svelte';
   import AdminPanel from './components/AdminPanel.svelte';
+  import AnnouncementsPanel from './components/AnnouncementsPanel.svelte';
   import ByzantineSplashScreen from './components/ByzantineSplashScreen.svelte';
   import {
     cacheEN,
@@ -48,6 +49,7 @@
   let error = $state(false);
   let errorMsg = $state('');
   let showAdmin = $state(false);
+  let showAnnouncements = $state(false);
   let editingEvent = $state<ParishEvent | null>(null);
   let addEventDate = $state('');
   let selectedEvent = $state<ParishEvent | null>(null);
@@ -348,6 +350,15 @@
     addEventDate = '';
   }
 
+  function handleViewAnnouncementEvent(eventId: string) {
+    // Reuse the deep-link resolution path: the $effect watching pendingEventId finds
+    // the matching event, switches to its month, and opens the event panel.
+    showAnnouncements = false;
+    selectedDay.set(null);
+    pendingEventId = eventId;
+    pendingEventDate = null;
+  }
+
   async function handleLogout() {
     await logoutAdminSession();
   }
@@ -401,6 +412,26 @@
               fill="none"
               stroke="currentColor"
               stroke-width="2"><path d="M20 12a8 8 0 10-2.34 5.66M20 4v8h-8" /></svg
+            >
+          </button>
+          <button
+            class="hdr-icon-btn"
+            onclick={() => (showAnnouncements = true)}
+            title={t.announcements}
+            aria-label={t.announcements}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              ><path d="M12 3c-3.31 0-6 2.69-6 6v3.5l-1.5 3h15l-1.5-3V9c0-3.31-2.69-6-6-6z" /><path
+                d="M9.5 18a2.5 2.5 0 0 0 5 0"
+              /></svg
             >
           </button>
           {#if $isAdmin}
@@ -553,6 +584,11 @@
             />
           </Modal>
         {/if}
+
+        <!-- Announcements Modal (available regardless of year availability) -->
+        <Modal open={showAnnouncements} onClose={() => (showAnnouncements = false)}>
+          <AnnouncementsPanel {t} lang={$language} onViewEvent={handleViewAnnouncementEvent} />
+        </Modal>
 
         <!-- Go to Today -->
         {#if showGoToday && !isYearMissing}
