@@ -1,13 +1,15 @@
 [
   {
     "relation": [
-      "delegate_permission/common.handle_all_urls"
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
     ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.cybersystema.okncalendar",
       "sha256_cert_fingerprints": [
-        "5B:FC:62:CB:9C:2E:28:14:76:99:53:BD:91:17:B8:B7:93:FB:30:05:E9:04:AB:2D:4E:93:FD:96:FA:42:4E:6B"
+        "5B:FC:62:CB:9C:2E:28:14:76:99:53:BD:91:17:B8:B7:93:FB:30:05:E9:04:AB:2D:4E:93:FD:96:FA:42:4E:6B",
+        "13:B8:28:74:FF:53:FB:76:9E:D2:29:6E:A1:D5:6F:70:1B:F9:B8:9F:8B:AB:30:81:87:3F:8A:63:93:C9:D8:2F"
       ]
     }
   }
